@@ -14,11 +14,4 @@ struct Constants final{
 };    
 }
 
-// 允许最终用户替换 msgpack 依赖项
-// 要替换 msgpack 依赖项，需要删除 rpclib 目录中的 msgpack 头文件
-// --最后需要将 RPCLIB_MSGPACK 宏更改为新 msgpack 使用的命名空间名称
-#ifndef RPC_MSGPACK
-#define RPC_MSGPACK clmdep_msgpack
-#endif
-
 #endif

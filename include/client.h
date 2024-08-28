@@ -3,11 +3,14 @@
 
 #include <future>
 #include <memory>
+#include <msgpack.hpp>
 #include <optional>
 #include <string>
 
 #include "config.h"
-#include "msgpack.h"
+
+using msgpack::object_handle;
+using msgpack::sbuffer;
 
 namespace rpc{
 
@@ -15,23 +18,22 @@ namespace rpc{
 // 在创建时，它会异步连接到指定的服务器，并在对象被销毁时自动断开连接
 class Client {
 private:
-    using rpc_promise = std::promise<RPC_MSGPACK::object_handle>;
+    using rpc_promise = std::promise<object_handle>;
 
-    enum class request_type {
+    enum class RequestType {
         call,
         notification
     };
-private:
-    static constexpr double buffer_grow_factor_ = 1.8;
-    struct impl;
-    std::unique_ptr<impl> pimpl_;
-public:
-    enum class connection_state {
+    enum class ConnectionState {
         initial,
         connected,
         disconnected,
         reset
     };
+private:
+    static constexpr double buffer_grow_factor_ = 1.8;
+    struct impl;
+    std::unique_ptr<impl> pimpl_;
 public:
     // 异步连接
     // addr可以使ip地址也可以是域名
@@ -45,10 +47,10 @@ public:
 
     // todo: 可得到server中发生的异常 加上 in rpc_server 前缀？
     template<typename... Args>
-    RPC_MSGPACK::object_handle call(const std::string& func_name, Args... args);
+    object_handle call(const std::string& func_name, Args... args);
 
     template<typename... Args>
-    RPC_MSGPACK::object_handle async_call(const std::string& func_name, Args... args);
+    object_handle async_call(const std::string& func_name, Args... args);
 
     template<typename... Args>
     void notify(const std::string& func_name, Args... args);
@@ -61,27 +63,22 @@ public:
 
     void clear_timeout();
 
-    connection_state connection_state() const;
+    ConnectionState connection_state() const;
 
     void wait_all_responses();
 
 private:
     void wait_conn();
 
-    void post(std::shared_ptr<RPC_MSGPACK::sbuffer> buffer, int idx, 
+    void post(std::shared_ptr<sbuffer> buffer, int idx, 
         const std::string& func_name, std::shared_ptr<rpc_promise> p);
-    void post(RPC_MSGPACK::sbuffer *buffer);
+    void post(sbuffer *buffer);
 
     int next_call_idx();
-private:
-    static constexpr double buffer_grow_factor_ = 1.8;
-    
-    struct impl;
-    std::unique_ptr<impl> pimpl;
 };
 
 }
 
-#include "rpc/client.inl"
+#include "client.inl"
 
 #endif
