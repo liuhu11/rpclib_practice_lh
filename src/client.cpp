@@ -1,19 +1,20 @@
 #include <atomic>
 #include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
-#include <system_error>
 #include <thread>
 #include <unordered_map>
 #include <utility>
 
+#include "async_writer.h"
 #include "client.h"
 #include "config.h"
 #include "log.h"
 
 using boost::asio::io_context;
-using boost::asio::strand;
+using boost::system::error_code;
 using msgpack::unpacker;
 
 namespace rpc{
@@ -24,7 +25,7 @@ public:
     using call_t = std::pair<std::string, rpc_promise>;
 public:
     io_context io;
-    strand<io_context::executor_type> strand;
+    io_context::strand strand;
     std::atomic<int> call_idx;
     std::unordered_map<int, call_t> ongoing_calls;
     std::string addr;
@@ -35,9 +36,9 @@ public:
     std::mutex mut_conn_finished;
     std::thread io_thread;
     std::atomic<Client::ConnectionState> state;
-    std::shared_ptr<detail::async_writer> writer;
+    std::shared_ptr<detail::AsyncWriter> writer;
     std::optional<int64_t> timeout;
-    std::optional<std::error_code> conn_ec;
+    std::optional<error_code> conn_ec;
     RPC_CREATE_LOG_CHANNEL(Client)
 
 };

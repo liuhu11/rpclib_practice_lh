@@ -9,16 +9,13 @@
 
 #include "config.h"
 
-using msgpack::object_handle;
-using msgpack::sbuffer;
-
 namespace rpc{
 
 // 客户端，能连接rpc_server，并支持同步或异步的函数调用
 // 在创建时，它会异步连接到指定的服务器，并在对象被销毁时自动断开连接
 class Client {
 private:
-    using rpc_promise = std::promise<object_handle>;
+    using rpc_promise = std::promise<msgpack::object_handle>;
 
     enum class RequestType {
         call,
@@ -47,10 +44,10 @@ public:
 
     // todo: 可得到server中发生的异常 加上 in rpc_server 前缀？
     template<typename... Args>
-    object_handle call(const std::string& func_name, Args... args);
+    msgpack::object_handle call(const std::string& func_name, Args... args);
 
     template<typename... Args>
-    object_handle async_call(const std::string& func_name, Args... args);
+    msgpack::object_handle async_call(const std::string& func_name, Args... args);
 
     template<typename... Args>
     void notify(const std::string& func_name, Args... args);
@@ -70,9 +67,9 @@ public:
 private:
     void wait_conn();
 
-    void post(std::shared_ptr<sbuffer> buffer, int idx, 
+    void post(std::shared_ptr<msgpack::sbuffer> buffer, int idx, 
         const std::string& func_name, std::shared_ptr<rpc_promise> p);
-    void post(sbuffer *buffer);
+    void post(msgpack::sbuffer *buffer);
 
     int next_call_idx();
 };
