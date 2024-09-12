@@ -7,6 +7,7 @@ using boost::asio::buffer;
 using boost::asio::io_context;
 using boost::asio::ip::tcp;
 using boost::system::error_code;
+using msgpack::sbuffer;
 
 namespace rpc::detail {
 AsyncWriter::AsyncWriter(io_context *io, tcp::socket&& socket):socket_(std::move(socket)),
@@ -64,7 +65,7 @@ void AsyncWriter::do_write() {
     ));
 }
 
-void AsyncWriter::write(msgpack::sbuffer &&data) {
+void AsyncWriter::write(sbuffer &&data) {
     if(exit_.load(std::memory_order_acquire)) {
         return ;
     }
