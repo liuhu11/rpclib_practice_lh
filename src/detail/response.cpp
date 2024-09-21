@@ -7,11 +7,11 @@ using msgpack::sbuffer;
 namespace rpc::detail {
 Response::Response():id_(0), empty_(false) {}
 
-Response::Response(object_handle o):Response() {
+Response::Response(object_handle &&obj):Response() {
     response_type response;
     // o.get()返回object的常引用
     // convert()用于转换数据
-    o.get().convert(response);
+    obj.get().convert(response);
 
     id_ = std::get<1>(response);
     auto &&err_obj = std::get<2>(response);
@@ -19,7 +19,7 @@ Response::Response(object_handle o):Response() {
         error_ = std::make_shared<object_handle>();
         *error_ = msgpack::clone(err_obj);
     }
-    result_ = std::make_shared<object_handle>(std::get<3>(response), std::move(o.zone()));
+    result_ = std::make_shared<object_handle>(std::get<3>(response), std::move(obj.zone()));
 }
 
 sbuffer Response::data() const {

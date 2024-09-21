@@ -12,6 +12,7 @@
 #include "client.h"
 #include "config.h"
 #include "log.h"
+#include "response.h"
 
 using boost::asio::buffer;
 using boost::asio::io_context;
@@ -101,10 +102,19 @@ void Client::impl::do_read() {
 
             // 含义：消耗了多少缓冲区
             unpac.buffer_consumed(lenth);
+            // unpacked就是object_handle
             unpacked result;
             // 如果成功解码出一个对象，next() 会将其存储到 result 参数中，并返回 true
             while(unpac.next(result)) {
-                
+                auto response = detail::Response(std::move(result));
+                auto id = response.id();
+                auto& current_call = ongoing_calls[id];
+                try {
+                    // todo 看看能不能抛出更明确的报错
+                    if(response.error() != nullptr) {
+                        
+                    }
+                }
             }
         }
     });

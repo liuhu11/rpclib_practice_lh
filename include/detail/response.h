@@ -22,7 +22,7 @@ private:
 public:
     // 协议版本，响应id，错误对象，结果对象
     using response_type = std::tuple<uint32_t, uint32_t, msgpack::object, msgpack::object>;
-    Response(msgpack::object_handle o);
+    Response(msgpack::object_handle &&obj);
     // T Any msgpack-able type.
     // If there is both an error and result in the response,
         // the result will be discarded while packing the data.
