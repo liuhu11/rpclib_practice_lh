@@ -28,7 +28,6 @@ public:
     // 写完才弹出元素
     void do_write();
     // 压入写的队列
-    void write(const msgpack::sbuffer& data);
     void write(msgpack::sbuffer &&data);
     boost::asio::ip::tcp::socket& socket();
 protected:

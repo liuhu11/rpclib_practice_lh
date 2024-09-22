@@ -18,8 +18,8 @@ private:
     using rpc_promise = std::promise<msgpack::object_handle>;
 
     enum class RequestType {
-        call,
-        notification
+        call = 0,
+        notification = 2
     };
     enum class ConnectionState {
         initial,
@@ -47,7 +47,7 @@ public:
     msgpack::object_handle call(const std::string& func_name, Args... args);
 
     template<typename... Args>
-    msgpack::object_handle async_call(const std::string& func_name, Args... args);
+    std::future<msgpack::object_handle> async_call(const std::string& func_name, Args... args);
 
     template<typename... Args>
     void notify(const std::string& func_name, Args... args);
@@ -69,9 +69,10 @@ private:
 
     void post(std::shared_ptr<msgpack::sbuffer> buffer, int idx, 
         const std::string& func_name, std::shared_ptr<rpc_promise> p);
-    void post(msgpack::sbuffer *buffer);
+    void post(std::shared_ptr<msgpack::sbuffer> buffer);
 
     int next_call_idx();
+    [[noreturn]] void throw_timeout(const std::string& func_name);
 };
 
 }
