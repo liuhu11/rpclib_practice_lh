@@ -23,7 +23,8 @@ std::future<msgpack::object_handle> async_call(const std::string &func_name, Arg
 
     auto args_tuple = std::make_tuple(args...);
     const int idx = next_call_idx();
-    auto call_obj = std::make_tuple(static_cast<uint8_t>(Client::RequestType::call), 
+    // 为什么要用uint8_t
+    auto call_obj = std::make_tuple(static_cast<int8_t>(Client::RequestType::call), 
         idx, func_name, args_tuple);
     auto buffer = std::make_shared<msgpack::sbuffer>();
     magack::pack(*buffer, call_obj);
@@ -45,7 +46,7 @@ void notify(const std::string& func_name, Args... args) {
     LOG_DEBUG("Sending notification {}.", func_name)
 
     auto args_tuple = std::make_tuple(args...);
-    auto call_obj = std::make_tuple(static_cast<uint8_t>(Client::RequestType::notification),
+    auto call_obj = std::make_tuple(static_cast<int8_t>(Client::RequestType::notification),
         func_name, args_tuple);
 
     // 为什么不用智能指针？
