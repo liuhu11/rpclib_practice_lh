@@ -1,4 +1,3 @@
-#include "client.h"
 namespace rpc {
 template<typename... Args>
 msgpack::object_handle Client::call(const std::string& func_name, Args... args) {
@@ -35,7 +34,6 @@ std::future<msgpack::object_handle> async_call(const std::string &func_name, Arg
     auto promise = std::make_shared<std::promise<msgpack::object_handle>>();
     auto future = promise.get_future();
 
-    // tmp
     post(buffer, idx, func_name, promise);
     return future;
 }

@@ -7,6 +7,7 @@ using msgpack::sbuffer;
 namespace rpc::detail {
 Response::Response():id_(0), empty_(false) {}
 
+// 这里用了委托构造函数
 Response::Response(object_handle &&obj):Response() {
     response_type response;
     // o.get()返回object的常引用
