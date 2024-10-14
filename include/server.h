@@ -1,0 +1,58 @@
+#ifndef SERVER_H_RPC
+#define SERVER_H_RPC
+
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "dispatcher.h"
+
+namespace rpc {
+namespace detail {
+class server_session;
+}
+
+class Server {
+private:
+    struct impl;
+    std::unique_ptr<impl> pimpl_;
+    std::shared_ptr<detail::Dispatcher> disp_;
+public:
+    //! \brief Constructs a server that listens on the localhost on the
+    //! specified port.
+    explicit Server(uint16_t port);
+    Server(Server &&other) noexcept;
+    Server(const std::string& address, uint16_t port);
+    ~Server();
+    Server& operator=(Server &&other);
+
+    void run();
+    void async_run(size_t worker_threads = 1);
+
+    template <typename Func>
+    void bind(const std::string& name, Func func) {
+        disp_->bind(name, func);
+    }
+
+    void unbind(const std::string& name);
+
+    std::vector<std::string> names() const;
+
+    void suppress_exceptions(bool suppress);
+
+    //! \brief Stops the server.
+    //! \note This should not be called from worker threads.
+    void stop();
+
+    uint16_t port() const;
+
+    void close_sessions();
+    
+    // 指针的引用？
+    void close_session(const std::shared_ptr<detail::ServerSession>& s);
+};
+}
+
+
+#endif

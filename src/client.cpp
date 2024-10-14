@@ -80,15 +80,15 @@ void Client::impl::do_connect(tcp::resolver::iterator endpoint_iterator) {
             if(!ec) {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
                 LOG_INFO("Client connected to {}:{}", addr, port);
-                is_connected.store(true, std::memory_order_release);
-                state.store(Client::ConnectionState::connected, std::memory_order_release);
+                is_connected.store(true);
+                state.store(Client::ConnectionState::connected);
                 conn_finished.notify_all();
                 do_read();
             }
             else {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
                 LOG_ERROR("Error during connection: {}", ec);
-                state.store(Client::ConnectionState::disconnected, std::memory_order_release);
+                state.store(Client::ConnectionState::disconnected);
                 conn_ec = ec;
                 conn_finished.notify_all();
             }
@@ -156,7 +156,7 @@ void Client::impl::do_read() {
 }
 
 Client::ConnectionState Client::impl::connection_state() const {
-    return state.load(std::memory_order_acquire);
+    return state.load();
 }
 
 void Client::impl::write(sbuffer &&item) {

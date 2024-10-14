@@ -16,7 +16,7 @@ AsyncWriter::AsyncWriter(io_context *io, tcp::socket&& socket):socket_(std::move
 void AsyncWriter::close() {
     // 为什么要先shutdown后close -- 不管怎么样close收尾
     // 注意相关的内存序问题！
-    exit_.store(true, std::memory_order_release);
+    exit_.store(true);
 
     // 保证生命周期
     auto self = shared_from_this();
@@ -34,11 +34,11 @@ void AsyncWriter::close() {
 }
 
 bool AsyncWriter::is_closed() const {
-    return exit_.load(std::memory_order_acquire);
+    return exit_.load(std::der_acquire);
 }
 
 void AsyncWriter::do_write() {
-    if(exit_.load(std::memory_order_acquire)) {
+    if(exit_.load()) {
         return ;
     }
 
@@ -54,7 +54,7 @@ void AsyncWriter::do_write() {
                 write_queue_.pop_front();
 
                 // 可以写的话继续异步写
-                if(write_queue_.size() > 0 && exit_.load(std::memory_order_acquire) == false) {
+                if(write_queue_.size() > 0 && exit_.load() == false) {
                     do_write();
                 }
             }
@@ -66,7 +66,7 @@ void AsyncWriter::do_write() {
 }
 
 void AsyncWriter::write(sbuffer &&data) {
-    if(exit_.load(std::memory_order_acquire)) {
+    if(exit_.load()) {
         return ;
     }
 
