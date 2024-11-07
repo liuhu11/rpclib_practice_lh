@@ -26,7 +26,7 @@ std::future<msgpack::object_handle> async_call(const std::string &func_name, Arg
     auto call_obj = std::make_tuple(static_cast<int8_t>(Client::RequestType::call), 
         idx, func_name, args_tuple);
     auto buffer = std::make_shared<msgpack::sbuffer>();
-    magack::pack(*buffer, call_obj);
+    msgpack::pack(*buffer, call_obj);
 
 
     // Change to move semantics when asio starts supporting move-only handlers in post().

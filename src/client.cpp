@@ -24,6 +24,7 @@ using msgpack::sbuffer;
 using msgpack::unpacked;
 using msgpack::unpacker;
 using rpc::detail::name_thread;
+using resolve_result = boost::asio::ip::basic_resolver_results<boost::asio::ip::tcp>;
 
 namespace rpc{
 static constexpr uint32_t default_buffer_size = rpc::Constants::DEFAULT_BUFFER_SIZE;
@@ -32,19 +33,22 @@ struct Client::impl {
 public:
     using call_t = std::pair<std::string, rpc_promise>;
 public:
-    // 方便调用Client类的接口
-    // 避免循环引用
+    // 方便拿到Client 虽然暂时没用
+    // 参考Server::impl中利用parent构造ServerSession
     Client* parent;
     io_context io;
     io_context::strand strand;
+    // 可能会有多个线程同时call
     std::atomic<int> call_idx;
     std::unordered_map<int, call_t> ongoing_calls;
     std::string addr;
     uint16_t port;
     unpacker unpac;
 
+    // 为什么这个要用atomic
     std::atomic<bool> is_connected;
     std::condition_variable conn_finished;
+    // 好像主要是为了防止异步的connect没搞完
     std::mutex mut_conn_finished;
 
     std::thread io_thread;
@@ -55,7 +59,7 @@ public:
     RPC_CREATE_LOG_CHANNEL(Client)
 public:
     impl(Client* parent_param, const std::string& addr_param, uint16_t port_param);
-    void do_connect(tcp::resolver::iterator endpoint_iterator);
+    void do_connect(resolve_result endpoints);
     void do_read();
     Client::ConnectionState connection_state() const;
     void write(sbuffer &&item);
@@ -67,16 +71,18 @@ public:
 Client::impl::impl(Client* parent_param, const std::string& addr_param, uint16_t port_param)
     :parent(parent_param), io(), strand(io), call_idx(0), addr(addr_param), port(port_param),
     is_connected(false), state(Client::ConnectionState::initial), 
+    // 此时这个socket只是被构造，还没有打开
     writer(std::make_shared<detail::AsyncWriter>(&io, tcp::socket(io))) {
         unpac.reserve_buffer(default_buffer_size);
 }
 
-void Client::impl::do_connect(tcp::resolver::iterator endpoint_iterator) {
+void Client::impl::do_connect(resolve_result endpoints) {
     LOG_INFO("Initialting connection.")
     conn_ec = std::nullopt;
 
-    boost::asio::async_connect(writer->socket(), endpoint_iterator, 
-        [this](error_code ec, tcp::resolver::iterator){
+    // 异步执行完毕后 socket打开
+    boost::asio::async_connect(writer->socket(), endpoints, 
+        [this](error_code ec, tcp::socket::endpoint_type){
             if(!ec) {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
                 LOG_INFO("Client connected to {}:{}", addr, port);
@@ -208,6 +214,7 @@ void Client::post(std::shared_ptr<msgpack::sbuffer> buffer) {
     });
 }
 
+// 真正的rpc通信还是只发送了sbuffer -- 序列化后的数据
 void Client::post(std::shared_ptr<msgpack::sbuffer> buffer, int idx, 
     const std::string& func_name, std::shared_ptr<rpc_promise> p) {
         pimpl_->strand.post([=](){
@@ -219,8 +226,9 @@ void Client::post(std::shared_ptr<msgpack::sbuffer> buffer, int idx,
 Client::Client(const std::string& addr, uint16_t port)
     :pimpl_(std::make_unique<impl>(this, addr, port)) {
         tcp::resolver resolver(pimpl_->io);
-        auto endpoint_iter = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));
-        pimpl_->do_connect(endpoint_iter);
+        // 返回的是个range 但也可以当iter用
+        auto endpoints = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));
+        pimpl_->do_connect(endpoints);
         std::thread io_thread([this](){
             RPC_CREATE_LOG_CHANNEL(Client)
             name_thread("client");

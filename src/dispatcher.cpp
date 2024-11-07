@@ -29,7 +29,7 @@ void Dispatcher::unbind(const std::string& name) {
 
 std::vector<std::string> Dispatcher::names() const {
     std::vector<std::string> ret;
-    std::transform(funcs_.cbegin(), funcs_.cend(), std::inserter(ret, ret.end()), [](const auto& pa){
+    std::transform(funcs_.cbegin(), funcs_.cend(), std::back_inserter(ret), [](const auto& pa){
         return pa.first;
     });
     return ret;

@@ -13,6 +13,7 @@ class Response {
 private:
     uint32_t id_;
     // 原作者很想避免使用shared_ptr
+    // 现在已经支持了 todo
     // but at this point asio does not work with move-only handlers in post() and I need to 
     // capture responses in lambdas.
     std::shared_ptr<msgpack::object_handle> error_;

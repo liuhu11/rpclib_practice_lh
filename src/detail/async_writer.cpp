@@ -14,8 +14,8 @@ AsyncWriter::AsyncWriter(io_context *io, tcp::socket&& socket):socket_(std::move
     write_strand_(*io) {}
 
 void AsyncWriter::close() {
-    // 为什么要先shutdown后close -- 不管怎么样close收尾
-    // 注意相关的内存序问题！
+    // 先不管内存序的问题
+    // TODO: 内存序
     exit_.store(true);
 
     // 保证生命周期
@@ -29,12 +29,13 @@ void AsyncWriter::close() {
             LOG_WARN("system_error during socket shutdown. "
                             "Code: {}. Message: {}", e.value(), e.message());
         }
+        // 不论shutdown是否成功，close兜底
         socket_.close();
     });
 }
 
 bool AsyncWriter::is_closed() const {
-    return exit_.load(std::der_acquire);
+    return exit_.load();
 }
 
 void AsyncWriter::do_write() {

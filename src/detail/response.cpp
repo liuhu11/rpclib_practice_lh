@@ -8,6 +8,7 @@ namespace rpc::detail {
 Response::Response():id_(0), empty_(false) {}
 
 // 这里用了委托构造函数
+// obj是只有一个zone的
 Response::Response(object_handle &&obj):Response() {
     response_type response;
     // o.get()返回object的常引用
@@ -20,6 +21,7 @@ Response::Response(object_handle &&obj):Response() {
         error_ = std::make_shared<object_handle>();
         *error_ = msgpack::clone(err_obj);
     }
+    // err_被赋值了依然会执行这一句 而只有一个zone
     result_ = std::make_shared<object_handle>(std::get<3>(response), std::move(obj.zone()));
 }
 

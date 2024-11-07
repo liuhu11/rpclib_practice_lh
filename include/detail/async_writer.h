@@ -10,7 +10,7 @@
 #include "log.h"
 
 namespace rpc::detail {
-// Common logic for classes that have a write queue with async writing.
+// 异步写 包含一个写队列
 class AsyncWriter : std::enable_shared_from_this<AsyncWriter> {
 private:
     boost::asio::ip::tcp::socket socket_;
@@ -19,13 +19,13 @@ private:
     std::deque<msgpack::sbuffer> write_queue_;
     RPC_CREATE_LOG_CHANNEL(AsyncWriter)
 public:
-    // 为什么使用值传递？
+    // socket值传递改为右值引用传递
     AsyncWriter(boost::asio::io_context *io, boost::asio::ip::tcp::socket&& socket);
     // 优雅关闭，保证之前的写完
     void close();
     bool is_closed() const;
     // 异步写队列中的第一个元素
-    // 写完才弹出元素
+    // 回调函数才弹出元素
     void do_write();
     // 压入写的队列
     void write(msgpack::sbuffer &&data);

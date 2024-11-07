@@ -90,6 +90,7 @@ using is_zero_arg = is_zero<func_traits<Func>::arg_count::value>;
 template <typename Func>
 using is_single_arg = std::conditional_t<func_traits<Func>::arg_count == 1, true_, false_>;
 
+// 这个返回值不太一致 todo
 template <typename Func>
 using is_void_result = std::is_void<func_traits<Func>::result_type>;
 }
