@@ -3,9 +3,9 @@
 #include <boost/system/error_code.hpp>
 
 #include "config.h"
-#include "log.h"
+#include "detail/log.h"
 #include "server.h"
-#include "server_session.h"
+#include "detail/server_session.h"
 #include "this_handler.h"
 #include "this_server.h"
 #include "this_session.h"
@@ -18,7 +18,7 @@ namespace rpc::detail {
 static constexpr size_t default_buffer_size = rpc::Constants::DEFAULT_BUFFER_SIZE;
 
 ServerSession::ServerSession(Server* srv, boost::asio::io_context* io, 
-    boost::asio::ip::tcp::socket socket, std::shared_ptr<Dispatcher> disp, bool suppress_exceptions):
+    boost::asio::ip::tcp::socket&& socket, std::shared_ptr<Dispatcher> disp, bool suppress_exceptions):
         AsyncWriter(io, std::move(socket)), parent_(srv), io_(io), 
         read_strand_(*io), disp_(disp), unpac_(),  suppress_exceptions_(suppress_exceptions) {
             unpac_.reserve_buffer(default_buffer_size);

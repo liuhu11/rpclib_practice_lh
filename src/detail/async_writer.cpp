@@ -1,6 +1,6 @@
 #include <boost/system/error_code.hpp>
 
-#include "async_writer.h"
+#include "detail/async_writer.h"
 
 using boost::asio::async_write;
 using boost::asio::buffer;

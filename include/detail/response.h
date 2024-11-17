@@ -6,7 +6,7 @@
 #include <msgpack.hpp>
 #include <tuple>
 
-#include "log.h"
+#include "detail/log.h"
 
 namespace rpc::detail{
 class Response {
@@ -71,6 +71,7 @@ Response Response::make_result(uint32_t id, std::unique_ptr<msgpack::object_hand
     return response;
 }
 
+// 保留了异常类型 -- 但是用的时候都直接传字符串了 -- 要求异常类型可以序列化
 template <typename T>
 Response Response::make_error(uint32_t id, T &&error) {
     auto zone = std::make_unique<msgpack::zone>();

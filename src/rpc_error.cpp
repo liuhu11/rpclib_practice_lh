@@ -17,11 +17,13 @@ Timeout::Timeout(const std::string& what_arg):std::runtime_error(what_arg) {
     formatted = std::format("rpc::timeout: {}", std::runtime_error::what());
 }
 
+// 此时对象是const的 成员变量也是const的了
 const char* Timeout::what() const noexcept {
     return formatted.data();
 }
 
 const char* SystemError::what() const noexcept {
+    // 子类显式调用父类的相关函数
     return std::system_error::what();
 }
 }

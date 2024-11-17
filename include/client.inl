@@ -32,7 +32,7 @@ std::future<msgpack::object_handle> async_call(const std::string &func_name, Arg
     // Change to move semantics when asio starts supporting move-only handlers in post().
     // 就是这里影响的 ！
     auto promise = std::make_shared<std::promise<msgpack::object_handle>>();
-    auto future = promise.get_future();
+    auto future = promise->get_future();
 
     post(buffer, idx, func_name, promise);
     return future;

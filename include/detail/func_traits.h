@@ -5,8 +5,8 @@
 #include <tuple>
 #include <type_traits>
 
-#include "constant.h"
-#include "invoke.h"
+#include "detail/constant.h"
+#include "detail/invoke.h"
 
 namespace rpc::detail {
 // 在模板编程中，通常需要类型而不是值

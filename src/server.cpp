@@ -3,14 +3,15 @@
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
 #include <mutex>
+#include <ranges>
 
-#include "dev_utils.h"
+#include "detail/dev_utils.h"
 #include "dispatcher.h"
-#include "log.h"
+#include "detail/log.h"
 #include "server.h"
-#include "server_session.h"
+#include "detail/server_session.h"
 #include "this_server.h"
-#include "thread_group.h"
+#include "detail/thread_group.h"
 
 using boost::asio::io_context;
 using boost::asio::ip::address;
@@ -18,6 +19,7 @@ using boost::asio::ip::tcp;
 using boost::system::error_code;
 using rpc::detail::ServerSession;
 using rpc::detail::ThreadGroup;
+namespace ranges = std::ranges;
 
 
 namespace rpc {
@@ -34,9 +36,11 @@ public:
     std::mutex sessions_mutex;
 public:
     impl(Server* parent_arg, const std::string& address, uint16_t port):parent(parent_arg),
+        // 这里的acceptor只是被构造了 但还没打开
         io(), acceptor(io), socket(io), suppress_exception(false) {
             auto endpoint = tcp::endpoint(address::from_string(address), port);
             acceptor.open(endpoint.protocol());
+            // 作用？
             acceptor.set_option(tcp::acceptor::reuse_address(true));
             acceptor.bind(endpoint);
             acceptor.listen();
@@ -76,7 +80,7 @@ public:
     void close_sessions() {
         std::vector<std::shared_ptr<ServerSession>> sessions_copy;
         {
-            // 注意这种方法 - 写时复制
+            // 注意这种方法 - 类似写时复制 -- 将具体的close逻辑放在lock之外了
             std::unique_lock<std::mutex> lock(sessions_mutex);
             sessions_copy = sessions;
             sessions.clear();
@@ -126,10 +130,13 @@ Server::~Server() {
 }
 
 Server& Server::operator=(Server &&other) {
-    if(this != &other) {
-        pimpl_ = std::move(other.pimpl_);
-        disp_ = std::move(other.disp_);
-    }
+    // 自赋值好像是在先delete自己的成员时 会有问题
+    // 但shared_ptr unique_ptr本身都是自赋值安全的 也不会有很多多余操作 所以不需要显示的判断自赋值
+
+
+    // 也可以拷贝后交换代替显示的自赋值检查
+    pimpl_ = std::move(other.pimpl_);
+    disp_ = std::move(other.disp_);
     return *this;
 }
 
@@ -170,17 +177,15 @@ void Server::close_sessions() {
     pimpl_->close_sessions();
 }
 
-void Server::close_session(const std::shared_ptr<detail::ServerSession>& s) {
-    // 但是参数仍然持有一个共享指针？ - 可以学习下思路！
-    // 多给一个指针 使得session的析构在释放锁之后
-    std::shared_ptr<detail::ServerSession> session;
-    {
-        std::unique_lock<std::mutex> lock(pimpl_->sessions_mutex);
-        auto iter = std::find(pimpl_->sessions.begin(), pimpl_->sessions.end(), s);
-        if(iter != pimpl_->sessions.end()) {
-            session = *iter;
-            pimpl_->sessions.erase(iter);
-        }
+void Server::close_session(std::shared_ptr<detail::ServerSession> s) {
+    // 局部变量和函数参数都是后构造的先析构
+
+    // lock解锁后参数仍然持有一个共享指针
+    // 使得session的析构在释放锁之后
+    std::unique_lock<std::mutex> lock(pimpl_->sessions_mutex);
+    auto iter = ranges::find(pimpl_->sessions, s);
+    if(iter != pimpl_->sessions.end()) {
+        pimpl_->sessions.erase(iter);
     }
     // session shared pointer is released outside of the mutex
 }

@@ -62,7 +62,7 @@ public:
 
     ConnectionState connection_state() const;
 
-    void wait_all_responses();
+    // void wait_all_responses();
 
 private:
     void wait_conn();

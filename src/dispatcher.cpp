@@ -1,11 +1,15 @@
 #include <algorithm>
 #include <format>
 #include <iterator>
+#include <ranges>
 #include <stdexcept>
 
-#include "client_error.h"
+#include "detail/client_error.h"
 #include "dispatcher.h"
 #include "this_handler.h"
+// 命名空间别名 好像是c++20引入的
+namespace ranges = std::ranges;
+
 
 namespace rpc::detail {
 void Dispatcher::enforce_unique_name(const std::string& func_name) const {
@@ -29,9 +33,9 @@ void Dispatcher::unbind(const std::string& name) {
 
 std::vector<std::string> Dispatcher::names() const {
     std::vector<std::string> ret;
-    std::transform(funcs_.cbegin(), funcs_.cend(), std::back_inserter(ret), [](const auto& pa){
-        return pa.first;
-    });
+    ranges::transform(funcs_, std::back_inserter(ret), [](const std::string& name) {
+        return name;
+    }, [](const auto& pa) {return pa.first;});
     return ret;
 }
 
@@ -55,9 +59,10 @@ Response Dispatcher::dispatch_call(const msgpack::object msg, bool suppress_exce
     call_t the_call;
     msg.convert(the_call);
 
-    // todo 验证第0位code
+    // todo 验证第0位code 即验证协议
 
     // 必定是左值，但这里采用了万能引用
+    // 应该是引用捕获可以保存 底层const属性
     auto &&id = std::get<1>(the_call);
     auto &&name = std::get<2>(the_call);
     auto &&args = std::get<3>(the_call);

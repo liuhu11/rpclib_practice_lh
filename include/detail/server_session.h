@@ -5,9 +5,9 @@
 #include <memory>
 #include <msgpack.hpp>
 
-#include "async_writer.h"
+#include "detail/async_writer.h"
 #include "dispatcher.h"
-#include "log.h"
+#include "detail/log.h"
 
 namespace rpc {
 class Server;
@@ -27,7 +27,7 @@ private:
     const bool suppress_exceptions_;
     RPC_CREATE_LOG_CHANNEL(ServerSession)
 public:
-    ServerSession(Server* srv, boost::asio::io_context* io, boost::asio::ip::tcp::socket socket, 
+    ServerSession(Server* srv, boost::asio::io_context* io, boost::asio::ip::tcp::socket&& socket, 
         std::shared_ptr<Dispatcher> disp, bool suppress_exceptions);
     void start();
     void close();

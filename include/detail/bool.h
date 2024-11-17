@@ -1,7 +1,7 @@
 #ifndef BOOL_H_RPC
 #define BOOL_H_RPC
 
-#include "constant.h"
+#include "detail/constant.h"
 
 namespace rpc::detail {
 template <bool B>

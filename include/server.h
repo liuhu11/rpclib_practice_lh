@@ -50,7 +50,7 @@ public:
     void close_sessions();
     
     // 指针的引用？
-    void close_session(const std::shared_ptr<detail::ServerSession>& s);
+    void close_session(std::shared_ptr<detail::ServerSession> s);
 };
 }
 

@@ -9,9 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "func_traits.h"
-#include "log.h"
-#include "response.h"
+#include "detail/func_traits.h"
+#include "detail/log.h"
+#include "detail/response.h"
 
 namespace rpc::detail {
 //! \brief This class maintains a registry of functors associated with their
@@ -71,10 +71,7 @@ private:
 
     Response dispatch_notification(const msgpack::object& msg, bool suppress_exception = false);
 
-    // 注意是万能引用
-    // 为什么会有这个pack的声明?
-    // template <typename T>
-    // msgpack::object pack(T &&arg);
+    // 这个pack声明应该不需要
 };
 }
 

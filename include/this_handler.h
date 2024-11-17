@@ -3,18 +3,19 @@
 
 #include <msgpack.hpp>
 
-#include "util.h"
+#include "detail/util.h"
 
 namespace rpc {
 namespace detail {
 class server_session;
+// 这两个类是已经定义了  只不过什么都没有
 class handler_error{};
 class handler_sepc_response{};
 }
 
 
 // 封装有关当前正在执行的处理程序的信息。
-// 什么时候会用上error_和resp_?
+// error_和resp_ 会在友元类被使用 -- detail::server_session
 class this_handler_t {
 private:
     msgpack::object_handle error_, resp_;

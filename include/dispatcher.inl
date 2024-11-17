@@ -18,7 +18,7 @@ void Dispatcher::bind(const std::string& name, Func func,
             // size是array中msgpack数据类型的个数
             enforce_arg_count(name, args.via.array.size, 0);
             func();
-            // 为什么要返回unique_ptr？
+            // object_handle不支持复制和移动 -- 所以返回unique_ptr
             return std::make_unique<msgpack::object_handle>();
         };
 }
@@ -30,6 +30,7 @@ void Dispatcher::bind(const std::string& name, Func func,
         enforce_unique_name(name);
 
         funcs_[name] = [name, func](const msgpack::object& args) {
+            // 这里是Args的tuple形式
             using args_type = typename func_traits<func>::args_type;
             constexpr size_t args_count = func_traits<func>::arg_count::value;
 
@@ -50,6 +51,7 @@ void bind(const std::string& name, Func func,
         funcs_[name] = [func, name](const msgpack::object& args) {
             enforce_arg_count(name, args.via.array.size, 0);
 
+            // 此处用unique_ptr是因为object_handle的构造函数需要unique_ptr<zone>&&
             auto z = std::make_unique<msgpack::zone>();
             auto res = msgpack::object(func(), *z);
             return std::make_unique<msgpack::object_handle>(res, std::move(z));

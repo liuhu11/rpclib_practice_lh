@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <format>
 
-#include "client_error.h"
+#include "detail/client_error.h"
 
 namespace rpc::detail {
 ClientError::ClientError(code c, const std::string& msg):

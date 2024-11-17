@@ -51,10 +51,11 @@
 
 1. [io_context::io_context - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context/io_context.html)
 1. [io_context::post - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context/post.html)
+1. [io_context::stop - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context/stop.html)
 
 ### io_context::strand
 
-[io_context::strand - 1.86.0 (boost.org)](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context__strand.html)
+[io_  `	` 	1context::strand - 1.86.0 (boost.org)](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context__strand.htmq2l)
 
 作用如下：
 
@@ -86,6 +87,8 @@
 1. [basic_stream_socket::close - 1.86.0 (boost.org)](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_stream_socket/close.html)
 1. [构造函数: 不支持复制，支持移动basic_stream_socket::basic_stream_socket - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_stream_socket/basic_stream_socket.html)
 1. [basic_stream_socket::async_read_some - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_stream_socket/async_read_some.html)
+1. [Get the remote endpoint of the socket. basic_stream_socket::remote_endpoint - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_stream_socket/remote_endpoint.html)
+1. [Get the local endpoint of the socket. basic_stream_socket::local_endpoint - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_stream_socket/local_endpoint.html)
 
 ### ip::tcp::resolver
 
@@ -99,6 +102,39 @@
 成员函数：
 
 1. [返回值是range ip::basic_resolver::resolve - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_resolver/resolve.html)
+
+### ip::tcp::acceptor
+
+[ip::tcp::acceptor - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__tcp/acceptor.html)
+
+作用如下：
+
+1. 接受来自客户端的连接请求，并为这些连接提供一个可以进行数据传输的 socket。
+2. 需要绑定到一个特定的端口，以便监听该端口上的传入连接。通过指定一个 `tcp::endpoint` 对象，开发者可以定义要监听的 IP 地址和端口号。
+
+成员函数：
+
+1. [构造函数 basic_socket_acceptor::basic_socket_acceptor - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_socket_acceptor/basic_socket_acceptor.html)
+2. [Open the acceptor using the specified protocol. basic_socket_acceptor::open - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_socket_acceptor/open.html)
+3. [basic_socket_acceptor::set_option - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_socket_acceptor/set_option.html)
+4. [Bind the acceptor to the given local endpoint. basic_socket_acceptor::bind - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_socket_acceptor/bind.html)
+5. [Place the acceptor into the state where it will listen for new connections. basic_socket_acceptor::listen - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_socket_acceptor/listen.html)
+6. [basic_socket_acceptor::async_accept - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_socket_acceptor/async_accept.html)
+7. [Cancel all asynchronous operations associated with the acceptor. basic_socket_acceptor::cancel - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/basic_socket_acceptor/cancel.html)
+
+### ip::tcp::endpoint
+
+[ip::tcp::endpoint - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__tcp/endpoint.html)
+
+作用如下：
+
+1. 封装了 IP 地址和端口号
+
+成员函数：
+
+1.  [构造函数 ip::basic_endpoint::basic_endpoint - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/basic_endpoint.html)
+2. [Get the port associated with the endpoint. The port number is always in the host's byte order. ip::basic_endpoint::port - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/port.html)
+3. [Get the IP address associated with the endpoint. ip::basic_endpoint::address - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/address.html)
 
 ## msgpack
 
@@ -268,13 +304,14 @@ https://c.msgpack.org/cpp/classmsgpack_1_1sbuffer.html
 
 4. ```c++
    // Unpack one msgpack::object.
+   // result用来存储unpack之后的数据
    bool next(msgpack::object_handle& result);
    
    // referenced: 如果解包的数据包含了对upacker中buffer的引用，则referenced被设置为true
    bool next(msgpack::object_handle& result,
             bool& referenced);
    ```
-
+   
 5. ```c++
    // After returning this function, buffer_capacity() returns at least 'size'.
    void reserve_buffer(size_t size = MSGPACK_UNPACKER_RESERVE_SIZE);
@@ -411,6 +448,7 @@ void pack(Stream& s, const T& v);
 
 1. [std::future::wait_for - cppreference.com](https://zh.cppreference.com/w/cpp/thread/future/wait_for)
 2. [std::future::get - cppreference.com](https://zh.cppreference.com/w/cpp/thread/future/get)
+3. [std::optional::value - cppreference.com](https://zh.cppreference.com/w/cpp/utility/optional/value)
 
 ### optional
 
@@ -423,6 +461,7 @@ void pack(Stream& s, const T& v);
 其他相关：
 
 1. [std::nullopt - cppreference.com](https://zh.cppreference.com/w/cpp/utility/optional/nullopt)
+1. [销毁任何所含值 std::optional::reset - cppreference.com](https://zh.cppreference.com/w/cpp/utility/optional/reset)
 
 ### conditional_variable
 
@@ -430,7 +469,34 @@ void pack(Stream& s, const T& v);
 
 成员函数：
 
-1. 
+1. [std::condition_variable::wait - cppreference.com](https://zh.cppreference.com/w/cpp/thread/condition_variable/wait)
+
+2. [std::condition_variable::wait_for - cppreference.com](https://zh.cppreference.com/w/cpp/thread/condition_variable/wait_for)
+3. 
+
+### unique_lock
+
+[std::unique_lock - cppreference.com](https://zh.cppreference.com/w/cpp/thread/unique_lock)
+
+可以unlock()，可以配合condition_variable使用
+
+### current_exception
+
+[std::current_exception - cppreference.com](https://zh.cppreference.com/w/cpp/error/current_exception)
+
+若在当前异常处理（典型地在 catch 子句中）中调用，则捕获当前异常对象，并创建一个保有该异常对象副本或到该异常对象引用（依赖于实现）的 [std::exception_ptr](https://zh.cppreference.com/w/cpp/error/exception_ptr)。被引用对象至少在仍有 `exception_ptr` 对象引用它时保持有效。
+
+### intptr_t
+
+足以保有指向 void 的指针的有符号整数类型
+
+### function
+
+[std::function - cppreference.com](https://zh.cppreference.com/w/cpp/utility/functional/function)
+
+### ranges::transform
+
+其中的投影可以是任意可调用对象
 
 ## tips
 

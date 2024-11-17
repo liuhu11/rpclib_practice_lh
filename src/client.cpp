@@ -8,12 +8,12 @@
 #include <unordered_map>
 #include <utility>
 
-#include "async_writer.h"
+#include "detail/async_writer.h"
 #include "client.h"
 #include "config.h"
-#include "dev_utils.h"
-#include "log.h"
-#include "response.h"
+#include "detail/dev_utils.h"
+#include "detail/log.h"
+#include "detail/response.h"
 #include "rpc_error.h"
 
 using boost::asio::buffer;
@@ -45,12 +45,13 @@ public:
     uint16_t port;
     unpacker unpac;
 
-    // 为什么这个要用atomic
-    std::atomic<bool> is_connected;
+    // 这个atomic感觉不需要
+    bool is_connected;
     std::condition_variable conn_finished;
     // 好像主要是为了防止异步的connect没搞完
     std::mutex mut_conn_finished;
 
+    // 此处有io_thread造成的多线程问题
     std::thread io_thread;
     std::atomic<Client::ConnectionState> state;
     std::shared_ptr<detail::AsyncWriter> writer;
@@ -62,6 +63,7 @@ public:
     void do_connect(resolve_result endpoints);
     void do_read();
     Client::ConnectionState connection_state() const;
+    // 直接调用这个应该没有多线程保护
     void write(sbuffer &&item);
     std::optional<int64_t> timeout() const;
     void timeout(int64_t val);
@@ -86,7 +88,7 @@ void Client::impl::do_connect(resolve_result endpoints) {
             if(!ec) {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
                 LOG_INFO("Client connected to {}:{}", addr, port);
-                is_connected.store(true);
+                is_connected = true;
                 state.store(Client::ConnectionState::connected);
                 conn_finished.notify_all();
                 do_read();
@@ -105,6 +107,7 @@ void Client::impl::do_read() {
     LOG_TRACE("do_read")
     constexpr size_t max_read_bytes = default_buffer_size;
     writer->socket().async_read_some(buffer(unpac.buffer(), max_read_bytes),
+    // 原作者认为这里没必要捕获 因为max_read_bytes是constexpr
     [this, max_read_bytes](error_code ec, size_t lenth){
         if(!ec) {
             LOG_TRACE("Read chunk of size {}", length)
@@ -148,6 +151,7 @@ void Client::impl::do_read() {
             state = Client::ConnectionState::disconnected;
         }
         else if(ec == boost::asio::error::connection_reset) {
+            // ?
             // Yes, this should be connection_state::reset,
             // but on windows, disconnection results in reset. May be
             // asio bug, may be a windows socket pecularity. Should be
@@ -187,6 +191,8 @@ void Client::wait_conn() {
     std::unique_lock<std::mutex> lock(pimpl_->mut_conn_finished);
     // 防止假唤醒
     while(pimpl_->is_connected == false) {
+        // 还要判断这个 用while挺好的
+        // 否则可以使用带 Predicate 的重载
         auto ec = pimpl_->conn_ec;
         if(ec.has_value()) {
             throw rpc::SystemError(ec.value());
@@ -209,6 +215,7 @@ void Client::wait_conn() {
 
 void Client::post(std::shared_ptr<msgpack::sbuffer> buffer) {
     // 隐式捕获了this
+    // 保证有序的申请写
     pimpl_->strand.post([=](){
         pimpl_->write(std::move(*buffer));
     });
@@ -258,11 +265,14 @@ Client::ConnectionState Client::connection_state() const {
     return pimpl_->connection_state();
 }
 
-void Client::wait_all_responses() {
-    for(auto& call : pimpl_->ongoing_calls) {
-        call.second.second.get_future().wait();
-    }
-}
+// void Client::wait_all_responses() {
+//     // 如何防止对同一个promise get_future两次的
+//     // async_call有一次
+//     // 感觉好像没意义
+//     for(auto& call : pimpl_->ongoing_calls) {
+//         call.second.second.get_future().wait();
+//     }
+// }
 
 int Client::next_call_idx() {
     return ++(pimpl_->call_idx);

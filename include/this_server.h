@@ -10,8 +10,8 @@ class ServerSession;
 //! currently executing handler.
 class this_server_t {
 private:
-    // 为什么不初始化？
-    bool stopping_;
+    // 类的默认构造函数不会对基本数据类型进行初始化
+    bool stopping_ = false;
 public:
     //! \brief Gracefully stops the server.
     void stop();
