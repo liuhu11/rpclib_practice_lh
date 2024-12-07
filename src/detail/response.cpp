@@ -5,7 +5,7 @@ using msgpack::object_handle;
 using msgpack::sbuffer;
 
 namespace rpc::detail {
-Response::Response():id_(0), empty_(false) {}
+Response::Response():id_(0), empty_(false), logger_(logging::LoggerFactory<>::create_logger("Response")) {}
 
 // 这里用了委托构造函数
 // obj是只有一个zone的

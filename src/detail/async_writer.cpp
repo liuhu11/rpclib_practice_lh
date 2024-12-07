@@ -11,7 +11,7 @@ using msgpack::sbuffer;
 
 namespace rpc::detail {
 AsyncWriter::AsyncWriter(io_context *io, tcp::socket&& socket):socket_(std::move(socket)),
-    write_strand_(*io) {}
+    write_strand_(*io), logger_(logging::LoggerFactory<>::create_logger("AsyncWriter")) {}
 
 void AsyncWriter::close() {
     // 先不管内存序的问题
@@ -21,13 +21,13 @@ void AsyncWriter::close() {
     // 保证生命周期
     auto self = shared_from_this();
     write_strand_.post([this, self]() {
-        LOG_INFO("Closing socket");
+        logger_.info("Closing socket");
 
         error_code ec;
         socket_.shutdown(tcp::socket::shutdown_both, ec);
         if(ec) {
-            LOG_WARN("system_error during socket shutdown. "
-                            "Code: {}. Message: {}", e.value(), e.message());
+            logger_.warning(std::format("system_error during socket shutdown. "
+                "Code: {}. Message: {}", ec.value(), ec.message()));
         }
         // 不论shutdown是否成功，close兜底
         socket_.close();
@@ -60,7 +60,7 @@ void AsyncWriter::do_write() {
                 }
             }
             else {
-                LOG_ERROR("Error while writing to socket: {}", ec)
+                logger_.error(std::format("Error while writing to socket: {}", ec));
             }
         }
     ));

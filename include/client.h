@@ -8,6 +8,7 @@
 #include <string>
 
 #include "config.h"
+#include "log/logger.h"
 
 namespace rpc{
 
@@ -29,6 +30,7 @@ private:
     };
 private:
     static constexpr double buffer_grow_factor_ = 1.8;
+    logging::DefaultLogger logger_;
     struct impl;
     std::unique_ptr<impl> pimpl_;
 public:

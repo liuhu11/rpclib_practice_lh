@@ -1,7 +1,6 @@
 namespace rpc {
 template<typename... Args>
 msgpack::object_handle Client::call(const std::string& func_name, Args... args) {
-    RPC_CREATE_LOG_CHANNEL(Client)
     auto future = async_call(func_name, std::forward<Args>(args)...);
     auto timeout_val = timeout();
     if(timeout_val.has_value()) {
@@ -16,9 +15,8 @@ msgpack::object_handle Client::call(const std::string& func_name, Args... args) 
 template <typename... Args>
 std::future<msgpack::object_handle> async_call(const std::string &func_name, Args... args)
 {
-    RPC_CREATE_LOG_CHANNEL(Client)
     wait_conn();
-    LOG_DEBUG("Calling {}", func_name)
+    logger_.debug("Calling {}", func_name)
 
     auto args_tuple = std::make_tuple(args...);
     const int idx = next_call_idx();
@@ -40,8 +38,7 @@ std::future<msgpack::object_handle> async_call(const std::string &func_name, Arg
 
 template <typename... Args>
 void notify(const std::string& func_name, Args... args) {
-    RPC_CREATE_LOG_CHANNEL(Client)
-    LOG_DEBUG("Sending notification {}.", func_name)
+    logger_.debug("Sending notification {}.", func_name)
 
     auto args_tuple = std::make_tuple(args...);
     auto call_obj = std::make_tuple(static_cast<int8_t>(Client::RequestType::notification),

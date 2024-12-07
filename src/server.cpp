@@ -7,7 +7,6 @@
 
 #include "detail/dev_utils.h"
 #include "dispatcher.h"
-#include "detail/log.h"
 #include "server.h"
 #include "detail/server_session.h"
 #include "this_server.h"
@@ -32,7 +31,6 @@ public:
     ThreadGroup loop_workers;
     std::vector<std::shared_ptr<ServerSession>> sessions;
     std::atomic<bool> suppress_exception;
-    RPC_CREATE_LOG_CHANNEL(Server)
     std::mutex sessions_mutex;
 public:
     impl(Server* parent_arg, const std::string& address, uint16_t port):parent(parent_arg),
@@ -60,7 +58,7 @@ public:
         acceptor.async_accept(socket, [this](error_code ec) {
             if(!ec) {
                 auto endpoint = socket.remote_endpoint();
-                LOG_INFO("Accepted connection from {}:{}", endpoint.address(), endpoint.port());
+                parent->logger_.info(std::format("Accepted connection from {}:{}", endpoint.address(), endpoint.port()));
                 auto session = std::make_shared<ServerSession>(parent, &io, std::move(socket),
                     parent->disp_, suppress_exception);
                 session->start();
@@ -68,7 +66,7 @@ public:
                 sessions.push_back(session);
             }
             else {
-                LOG_ERROR("Error while accepting connection: {}", ec)
+                parent->logger_.error(std::format("Error while accepting connection: {} | '{}'", ec.value(), ec.message()));
             }
             if(!this_server().stopping()) {
                 start_accept();
@@ -103,23 +101,23 @@ public:
     }
 };
 
-RPC_CREATE_LOG_CHANNEL(Server)
-
 Server::Server(uint16_t port):pimpl_(std::make_unique<impl>(this, port)),
-    disp_(std::make_shared<detail::Dispatcher>()) {
-        LOG_INFO("Created server on localhost:{}", port)
+    disp_(std::make_shared<detail::Dispatcher>()), logger_(logging::LoggerFactory<>::create_logger("Server")) {
+        logger_.info(std::format("Created server on localhost:{}", port));
         pimpl_->start_accept();
 }
 
 Server::Server(Server &&other) noexcept {
     // 利用赋值运算符实现移动函数
-    *this = std::move(other);
+    pimpl_ = std::move(other.pimpl_);
+    disp_ = std::move(other.disp_);
+    logger_ = std::move(other.logger_);
 }
 
 Server::Server(const std::string& address, uint16_t port)
     :pimpl_(std::make_unique<impl>(this, address, port)), 
-    disp_(std::make_shared<detail::Dispatcher>()){
-        LOG_INFO("Created server on {}:{}", address, port)
+    disp_(std::make_shared<detail::Dispatcher>()), logger_(logging::LoggerFactory<>::create_logger("Server")){
+        logger_.info(std::format("Created server on {}:{}", address, port));
         pimpl_->start_accept();
 }
 
@@ -137,6 +135,7 @@ Server& Server::operator=(Server &&other) {
     // 也可以拷贝后交换代替显示的自赋值检查
     pimpl_ = std::move(other.pimpl_);
     disp_ = std::move(other.disp_);
+    logger_ = std::move(other.logger_);
     return *this;
 }
 
@@ -147,9 +146,9 @@ void Server::run() {
 void Server::async_run(size_t worker_threads = 1) {
     pimpl_->loop_workers.create_threads(worker_threads, [this](){
         detail::name_thread("server");
-        LOG_INFO("Starting")
+        logger_.info("Starting");
         pimpl_->io.run();
-        LOG_INFO("Exsiting")
+        logger_.info("Exsiting");
     });
 }
 

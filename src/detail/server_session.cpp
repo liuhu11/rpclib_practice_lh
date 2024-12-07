@@ -3,7 +3,6 @@
 #include <boost/system/error_code.hpp>
 
 #include "config.h"
-#include "detail/log.h"
 #include "server.h"
 #include "detail/server_session.h"
 #include "this_handler.h"
@@ -20,7 +19,8 @@ static constexpr size_t default_buffer_size = rpc::Constants::DEFAULT_BUFFER_SIZ
 ServerSession::ServerSession(Server* srv, boost::asio::io_context* io, 
     boost::asio::ip::tcp::socket&& socket, std::shared_ptr<Dispatcher> disp, bool suppress_exceptions):
         AsyncWriter(io, std::move(socket)), parent_(srv), io_(io), 
-        read_strand_(*io), disp_(disp), unpac_(),  suppress_exceptions_(suppress_exceptions) {
+        read_strand_(*io), disp_(disp), unpac_(),  suppress_exceptions_(suppress_exceptions), 
+        logger_(logging::LoggerFactory<>::create_logger("ServerSession")) {
             unpac_.reserve_buffer(default_buffer_size);
 }
 
@@ -29,7 +29,7 @@ void ServerSession::start() {
 }
 
 void ServerSession::close() {
-    LOG_INFO("Closing session.")
+    logger_.info("Closing session.");
     AsyncWriter::close();
 
     auto self(shared_from_base<ServerSession>());
@@ -83,11 +83,11 @@ void ServerSession::do_read() {
                         // and third, if there is a special response, we
                         // use it
                         if(!this_handler().error_.get().is_nil()) {
-                            LOG_WARN("There was an error set in the handler.")
+                            logger_.warning("There was an error set in the handler.");
                             resp.capture_error(std::move(this_handler().error_));
                         }
                         else if(!this_handler().resp_.get().is_nil()) {
-                            LOG_WARN("There wan a special result set in the handler.")
+                            logger_.warning("There wan a special result set in the handler.");
                             resp.capture_result(std::move(this_handler().resp_));
                         }
 
@@ -98,7 +98,7 @@ void ServerSession::do_read() {
                         }
 
                         if(this_session().exit_) {
-                            LOG_WARN("Session exit requested from a handler.")
+                            logger_.warning("Session exit requested from a handler.");
                             // posting through the strand so this comes after
                             // the previous write
                             write_strand().post([this]() {
@@ -107,7 +107,7 @@ void ServerSession::do_read() {
                         }
 
                         if(this_server().stopping()) {
-                            LOG_WARN("Server exit requested from a handler.")
+                            logger_.warning("Server exit requested from a handler.");
                             write_strand().post([this]() {
                                 parent_->close_sessions();
                             });
@@ -122,7 +122,7 @@ void ServerSession::do_read() {
                     // to resize its buffer doubling its size
                     // (https://github.com/msgpack/msgpack-c/issues/567#issuecomment-280810018)
                     if(unpac_.buffer_capacity() < max_read_bytes) {
-                        LOG_TRACE("Reserving extra buffer: {}", max_read_bytes)
+                        logger_.trace(std::format("Reserving extra buffer: {}", max_read_bytes));
                         unpac_.reserve_buffer(max_read_bytes);
                     }
                     do_read();
@@ -130,11 +130,11 @@ void ServerSession::do_read() {
             }
             else if(ec == boost::asio::error::eof ||
                         ec == boost::asio::error::connection_reset) {
-                        LOG_INFO("Client disconnection")
+                        logger_.info("Client disconnection");
                         self->close();
                     }
             else {
-                LOG_ERROR("Unhandled error code: {} | '{}'", ec, ec.message());
+                logger_.error(std::format("Unhandled error code: {} | '{}'", ec.value(), ec.message()));
             }
         }));
 }

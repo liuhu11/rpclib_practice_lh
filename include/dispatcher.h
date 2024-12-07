@@ -8,9 +8,10 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+#include <source_location>
 
 #include "detail/func_traits.h"
-#include "detail/log.h"
+#include "log/logger.h"
 #include "detail/response.h"
 
 namespace rpc::detail {
@@ -28,7 +29,8 @@ private:
     enum class RequestType{call = 0, notification = 2};
 
     std::unordered_map<std::string, adaptor_type> funcs_;
-    RPC_CREATE_LOG_CHANNEL(Dispatcher)
+    // 需要在LoggerFactory后加上<>以应用默认的模板参数
+    logging::DefaultLogger logger_ = logging::LoggerFactory<>::create_logger("Dispatcher");
 public:
     template <typename Func>
     void bind(const std::string& name, Func func);

@@ -12,7 +12,6 @@
 #include "client.h"
 #include "config.h"
 #include "detail/dev_utils.h"
-#include "detail/log.h"
 #include "detail/response.h"
 #include "rpc_error.h"
 
@@ -57,7 +56,6 @@ public:
     std::shared_ptr<detail::AsyncWriter> writer;
     std::optional<int64_t> timeout_val;
     std::optional<error_code> conn_ec;
-    RPC_CREATE_LOG_CHANNEL(Client)
 public:
     impl(Client* parent_param, const std::string& addr_param, uint16_t port_param);
     void do_connect(resolve_result endpoints);
@@ -79,7 +77,7 @@ Client::impl::impl(Client* parent_param, const std::string& addr_param, uint16_t
 }
 
 void Client::impl::do_connect(resolve_result endpoints) {
-    LOG_INFO("Initialting connection.")
+    parent->logger_.info("Initialting connection.");
     conn_ec = std::nullopt;
 
     // 异步执行完毕后 socket打开
@@ -87,7 +85,7 @@ void Client::impl::do_connect(resolve_result endpoints) {
         [this](error_code ec, tcp::socket::endpoint_type){
             if(!ec) {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
-                LOG_INFO("Client connected to {}:{}", addr, port);
+                parent->logger_.info(std::format("Client connected to {}:{}", addr, port));
                 is_connected = true;
                 state.store(Client::ConnectionState::connected);
                 conn_finished.notify_all();
@@ -95,7 +93,7 @@ void Client::impl::do_connect(resolve_result endpoints) {
             }
             else {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
-                LOG_ERROR("Error during connection: {}", ec);
+                parent->logger_.error(std::format("Error during connection: {} | '{}'", ec.value(), ec.message()));
                 state.store(Client::ConnectionState::disconnected);
                 conn_ec = ec;
                 conn_finished.notify_all();
@@ -104,13 +102,13 @@ void Client::impl::do_connect(resolve_result endpoints) {
 }
 
 void Client::impl::do_read() {
-    LOG_TRACE("do_read")
+    parent->logger_.trace("do_read");
     constexpr size_t max_read_bytes = default_buffer_size;
     writer->socket().async_read_some(buffer(unpac.buffer(), max_read_bytes),
     // 原作者认为这里没必要捕获 因为max_read_bytes是constexpr
     [this, max_read_bytes](error_code ec, size_t lenth){
         if(!ec) {
-            LOG_TRACE("Read chunk of size {}", length)
+            parent->logger_.trace(std::format("Read chunk of size {}", lenth));
 
             // 含义：消耗了多少缓冲区
             unpac.buffer_consumed(lenth);
@@ -141,13 +139,13 @@ void Client::impl::do_read() {
             // then request max_read_bytes. This prompts the unpacker
             // to resize its buffer doubling its size
             if(unpac.buffer_capacity() < max_read_bytes) {
-                LOG_TRACE("Reserving extra buffer: {}", max_read_bytes)
+                parent->logger_.trace(std::format("Reserving extra buffer: {}", max_read_bytes));
                 unpac.reserve_buffer(max_read_bytes);
             }
             do_read();
         }
         else if(ec == boost::asio::error::eof) {
-            LOG_WARN("The server closed the connection.")
+            parent->logger_.warning("The server closed the connection.");
             state = Client::ConnectionState::disconnected;
         }
         else if(ec == boost::asio::error::connection_reset) {
@@ -156,11 +154,11 @@ void Client::impl::do_read() {
             // but on windows, disconnection results in reset. May be
             // asio bug, may be a windows socket pecularity. Should be
             // investigated later.
-            LOG_WARN("The server was reset or disconencted");
+            parent->logger_.warning("The server was reset or disconencted");
             state = Client::ConnectionState::disconnected;
         }
         else {
-            LOG_ERROR("Unhandled error code: {} | {}", ec, ec.message());
+            parent->logger_.error(std::format("Unhandled error code: {} | '{}'", ec.value(), ec.message()));
         }
     });
 }
@@ -231,13 +229,12 @@ void Client::post(std::shared_ptr<msgpack::sbuffer> buffer, int idx,
 }
 
 Client::Client(const std::string& addr, uint16_t port)
-    :pimpl_(std::make_unique<impl>(this, addr, port)) {
+    :logger_(logging::LoggerFactory<>::create_logger("Client")), pimpl_(std::make_unique<impl>(this, addr, port)) {
         tcp::resolver resolver(pimpl_->io);
         // 返回的是个range 但也可以当iter用
         auto endpoints = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));
         pimpl_->do_connect(endpoints);
         std::thread io_thread([this](){
-            RPC_CREATE_LOG_CHANNEL(Client)
             name_thread("client");
             pimpl_->io.run();
         });

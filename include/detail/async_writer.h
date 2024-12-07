@@ -7,7 +7,7 @@
 #include <memory>
 #include <msgpack.hpp>
 
-#include "detail/log.h"
+#include "log/logger.h"
 
 namespace rpc::detail {
 // 异步写 包含一个写队列
@@ -17,7 +17,8 @@ private:
     boost::asio::io_context::strand write_strand_;
     std::atomic<bool> exit_{false};
     std::deque<msgpack::sbuffer> write_queue_;
-    RPC_CREATE_LOG_CHANNEL(AsyncWriter)
+    logging::DefaultLogger logger_;
+    
 public:
     // socket值传递改为右值引用传递
     AsyncWriter(boost::asio::io_context *io, boost::asio::ip::tcp::socket&& socket);

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "dispatcher.h"
+#include "log/logger.h"
 
 namespace rpc {
 namespace detail {
@@ -18,6 +19,7 @@ private:
     struct impl;
     std::unique_ptr<impl> pimpl_;
     std::shared_ptr<detail::Dispatcher> disp_;
+    logging::DefaultLogger logger_;
 public:
     //! \brief Constructs a server that listens on the localhost on the
     //! specified port.

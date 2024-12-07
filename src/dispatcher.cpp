@@ -69,7 +69,7 @@ Response Dispatcher::dispatch_call(const msgpack::object msg, bool suppress_exce
 
     auto func_iter = funcs_.find(name);
     if(func_iter != funcs_.end()) {
-        LOG_DEBUG("Dispatching call to '{}'", name);
+        logger_.debug(std::format("Dispatching call to '{}'", name));
         try {
             auto res = func_iter->second(args);
             return Response::make_result(id, std::move(res));
@@ -119,7 +119,7 @@ Response Dispatcher::dispatch_notification(const msgpack::object& msg, bool supp
     auto func_iter = funcs_.find(name);
 
     if(func_iter != funcs_.end()) {
-        LOG_DEBUG("Dispatching call to '{}'", name);
+        logger_.debug(std::format("Dispatching call to '{}'", name));
         try {
             auto res = func_iter->second(args);
 
