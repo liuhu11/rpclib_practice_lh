@@ -1,4 +1,0 @@
-/home/lh/rpclib/build/install/lib/librpc_.so
-/home/lh/rpclib/build/install/bin/server
-/home/lh/rpclib/build/install/bin/client
-/home/lh/rpclib/build/install/./start.sh
