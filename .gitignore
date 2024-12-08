@@ -34,3 +34,5 @@
 *.log
 .vscode/
 thirdparty/
+
+build/

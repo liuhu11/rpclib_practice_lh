@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export LD_LIBRARY_PATH=/home/lh/rpclib/build/install/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/home/lighthouse/rpclib/build/install/lib:$LD_LIBRARY_PATH
 
 ./bin/server
 
