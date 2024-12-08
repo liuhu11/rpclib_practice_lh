@@ -7,9 +7,9 @@
 namespace rpc::detail {
 // 万能引用
 template <typename T>
-msgpack::object_handle pack(T &&obj) {
+msgpack::object_handle pack(T &&obj_param) {
     auto z = std::make_unique<msgpack::zone>();
-    msgpack::object obj(std::forward<T>(obj), *z);
+    msgpack::object obj(std::forward<T>(obj_param), *z);
     return msgpack::object_handle(obj, std::move(z));
 }
 }

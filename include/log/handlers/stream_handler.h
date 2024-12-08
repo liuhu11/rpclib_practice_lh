@@ -30,6 +30,12 @@ public:
     // 在模板类中，模板类本身不需要带参数
     StreamHandler(StreamHandler&& other) noexcept : BaseHandler<HandlerLevel>(other.formatter()), owned_stream_(std::move(other.owned_stream_)), 
         stream(*owned_stream_) {}
+    StreamHandler& operator=(StreamHandler&& other) noexcept {
+        (void)BaseHandler<HandlerLevel>::operator=(std::move(other));
+        owned_stream_ = std::move(other.owned_stream_);
+        stream_ = stream_;
+        return *this;
+    }
     
     // 子类的析构函数不用显式调用基类的析构函数
     ~StreamHandler() override {}
@@ -42,7 +48,7 @@ public:
     template <Level EmitLevel>
         requires (EmitLevel <= HandlerLevel)
     void emit(const Record& record) {
-        std::osyncstream(stream_) << format(record) << std::endl;
+        std::osyncstream(stream_) << this->format(record) << std::endl;
     }
 private:
     std::unique_ptr<std::ostream> owned_stream_;

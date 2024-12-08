@@ -7,6 +7,7 @@
 
 #include "detail/constant.h"
 #include "detail/invoke.h"
+#include "detail/bool.h"
 
 namespace rpc::detail {
 // 在模板编程中，通常需要类型而不是值
@@ -87,12 +88,13 @@ struct func_kind_info<R(*)(Args...)> {
 template <typename Func>
 using is_zero_arg = is_zero<func_traits<Func>::arg_count::value>;
 
+
 template <typename Func>
 using is_single_arg = std::conditional_t<func_traits<Func>::arg_count == 1, true_, false_>;
 
 // 这个返回值不太一致 todo
 template <typename Func>
-using is_void_result = std::is_void<func_traits<Func>::result_type>;
+using is_void_result = std::conditional_t<std::is_void_v<typename func_traits<Func>::result_type>, true_, false_>;
 }
 
 #endif

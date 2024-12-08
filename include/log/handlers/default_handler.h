@@ -17,6 +17,12 @@ public:
 
     // 三/五原则 定义了移动构造并不会自动生成移动赋值运算符
     DefaultHandler(DefaultHandler&& other) noexcept :BaseHandler<HandlerLevel>(other.formatter()) {}
+    DefaultHandler& operator=(DefaultHandler&& other) noexcept {
+        // 先显式调用基类的移动赋值运算符 -- operator=也可以当成普通函数来调用
+        (void)BaseHandler<HandlerLevel>::operator=(std::move(other));
+        // 赋值运算符要返回这个
+        return *this;
+    }
 
     template <Level EmitLevel>
         requires (EmitLevel > HandlerLevel)
@@ -27,7 +33,8 @@ public:
         requires (EmitLevel <= HandlerLevel)
     void emit(const Record& record) {
         // 父类继承来的
-        std::osyncstream(std::cout) << format(record) << std::endl;
+        // 此处this作用：使整体为待决名 推迟到第二次编译
+        std::osyncstream(std::cout) << this->format(record) << std::endl;
     }
 };
 }

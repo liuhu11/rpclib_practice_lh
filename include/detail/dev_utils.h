@@ -7,7 +7,7 @@
 #include <string>
 
 namespace rpc::detail {
-void name_thread(const std::string& name) {
+inline void name_thread(const std::string& name) {
     (void)name;
     #ifdef LINUX_RPC
     pthread_setname_np(pthread_self(), name.data());

@@ -214,7 +214,7 @@ void Client::wait_conn() {
 void Client::post(std::shared_ptr<msgpack::sbuffer> buffer) {
     // 隐式捕获了this
     // 保证有序的申请写
-    pimpl_->strand.post([=](){
+    pimpl_->strand.post([=, this](){
         pimpl_->write(std::move(*buffer));
     });
 }
@@ -222,7 +222,7 @@ void Client::post(std::shared_ptr<msgpack::sbuffer> buffer) {
 // 真正的rpc通信还是只发送了sbuffer -- 序列化后的数据
 void Client::post(std::shared_ptr<msgpack::sbuffer> buffer, int idx, 
     const std::string& func_name, std::shared_ptr<rpc_promise> p) {
-        pimpl_->strand.post([=](){
+        pimpl_->strand.post([=, this](){
             pimpl_->ongoing_calls[idx] = std::make_pair(func_name, std::move(*p));
             pimpl_->write(std::move(*buffer));
         });

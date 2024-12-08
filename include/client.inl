@@ -13,10 +13,10 @@ msgpack::object_handle Client::call(const std::string& func_name, Args... args) 
 }
 
 template <typename... Args>
-std::future<msgpack::object_handle> async_call(const std::string &func_name, Args... args)
+std::future<msgpack::object_handle> Client::async_call(const std::string &func_name, Args... args)
 {
     wait_conn();
-    logger_.debug("Calling {}", func_name)
+    logger_.debug(std::format("Calling {}", func_name));
 
     auto args_tuple = std::make_tuple(args...);
     const int idx = next_call_idx();
@@ -37,8 +37,8 @@ std::future<msgpack::object_handle> async_call(const std::string &func_name, Arg
 }
 
 template <typename... Args>
-void notify(const std::string& func_name, Args... args) {
-    logger_.debug("Sending notification {}.", func_name)
+void Client::notify(const std::string& func_name, Args... args) {
+    logger_.debug(std::format("Sending notification {}.", func_name));
 
     auto args_tuple = std::make_tuple(args...);
     auto call_obj = std::make_tuple(static_cast<int8_t>(Client::RequestType::notification),

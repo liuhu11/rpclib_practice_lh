@@ -92,7 +92,7 @@ void ServerSession::do_read() {
                         }
 
                         if(!resp.is_empty()) {
-                            write_strand().post([this, self, resp, z]() {
+                            write_strand().post([this, self, &resp, z]() {
                                 write(resp.data());
                             });
                         }

@@ -11,7 +11,7 @@
 
 namespace rpc {
 namespace detail {
-class server_session;
+class ServerSession;
 }
 
 class Server {

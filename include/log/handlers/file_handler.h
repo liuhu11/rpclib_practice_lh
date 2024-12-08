@@ -40,6 +40,12 @@ public:
     // ofstream支持移动构造
     FileHandler(FileHandler&& other) noexcept :BaseHandler<HandlerLevel>(other.formatter()), stream_(std::move(other.stream_)), 
         syncstream_(std::move(other.syncstream_)) {}
+    FileHandler& operator=(FileHandler&& other) noexcept {
+        (void)BaseHandler<HandlerLevel>::operator=(std::move(other));
+        stream_ = std::move(other.stream_);
+        syncstream_ = std::move(syncstream_);
+        return *this;
+    }
 
     template <Level EmitLevel>
         requires (EmitLevel > HandlerLevel)
@@ -49,7 +55,7 @@ public:
     template <Level EmitLevel>
         requires (EmitLevel <= HandlerLevel) 
     void emit(const Record& record) {
-        syncstream_ << format(record) << std::endl;
+        syncstream_ << this->format(record) << std::endl;
         (void)syncstream_.emit();
     }
 private:

@@ -58,7 +58,7 @@ public:
         acceptor.async_accept(socket, [this](error_code ec) {
             if(!ec) {
                 auto endpoint = socket.remote_endpoint();
-                parent->logger_.info(std::format("Accepted connection from {}:{}", endpoint.address(), endpoint.port()));
+                parent->logger_.info(std::format("Accepted connection from {}:{}", endpoint.address().to_string(), endpoint.port()));
                 auto session = std::make_shared<ServerSession>(parent, &io, std::move(socket),
                     parent->disp_, suppress_exception);
                 session->start();
@@ -107,11 +107,11 @@ Server::Server(uint16_t port):pimpl_(std::make_unique<impl>(this, port)),
         pimpl_->start_accept();
 }
 
-Server::Server(Server &&other) noexcept {
+// 在进入初始化函数体之前 所有的成员都已经构造好了 
+Server::Server(Server &&other) noexcept: logger_(std::move(other.logger_)) {
     // 利用赋值运算符实现移动函数
     pimpl_ = std::move(other.pimpl_);
     disp_ = std::move(other.disp_);
-    logger_ = std::move(other.logger_);
 }
 
 Server::Server(const std::string& address, uint16_t port)
@@ -143,7 +143,7 @@ void Server::run() {
     pimpl_->io.run();
 }
 
-void Server::async_run(size_t worker_threads = 1) {
+void Server::async_run(size_t worker_threads) {
     pimpl_->loop_workers.create_threads(worker_threads, [this](){
         detail::name_thread("server");
         logger_.info("Starting");

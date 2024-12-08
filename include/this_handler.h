@@ -7,7 +7,7 @@
 
 namespace rpc {
 namespace detail {
-class server_session;
+class ServerSession;
 // 这两个类是已经定义了  只不过什么都没有
 class handler_error{};
 class handler_sepc_response{};
@@ -15,13 +15,13 @@ class handler_sepc_response{};
 
 
 // 封装有关当前正在执行的处理程序的信息。
-// error_和resp_ 会在友元类被使用 -- detail::server_session
+// error_和resp_ 会在友元类被使用 -- detail::ServerSession
 class this_handler_t {
 private:
     msgpack::object_handle error_, resp_;
     bool resp_enabled_ = true;
 public:
-    friend class detail::server_session;
+    friend class detail::ServerSession;
     // 注意是万能引用
     template <typename T>
     void respond_error(T &&err_obj);

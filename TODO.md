@@ -11,3 +11,4 @@
 
 紧急：
 1. 注意osync什么时候emit
+2. handler的移动构造

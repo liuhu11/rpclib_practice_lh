@@ -34,9 +34,11 @@ public:
 
     // 移动赋值运算符和移动构造函数是分开的
     Logger(Logger&& other) noexcept :name_(std::move(other.name_)), handlers_(std::move(other.handlers_)) {}
-    Logger& operator(Logger&& other) noexcept {
+    // 赋值运算符最后需要返回自己的引用
+    Logger& operator=(Logger&& other) noexcept {
         name_ = std::move(other.name_);
         handlers_ = std::move(other.handlers_);
+        return *this;
     }
 
     Logger(const Logger&) = delete;
@@ -73,7 +75,7 @@ public:
         handle_log<LogLevel, HandlerIdx - 1>(record);
 
         auto& handler = std::get<HandlerIdx>(handlers_);
-        handler.emit<LogLevel>(record);
+        handler.template emit<LogLevel>(record);
     }
 
     // 模板函数没有偏特化
@@ -81,7 +83,7 @@ public:
         requires (HandlerIdx == 0)
     void handle_log(const Record& record) {
         auto& handler = std::get<HandlerIdx>(handlers_);
-        handler.emit<LogLevel>(record);
+        handler.template emit<LogLevel>(record);
     }
 
     // 以下都是对log的包装

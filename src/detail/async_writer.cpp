@@ -60,7 +60,7 @@ void AsyncWriter::do_write() {
                 }
             }
             else {
-                logger_.error(std::format("Error while writing to socket: {}", ec));
+                logger_.error(std::format("Error while writing to socket: {} | '{}'", ec.value(), ec.message()));
             }
         }
     ));
