@@ -12,12 +12,14 @@
 #include <sstream>
 
 int main() {
-    // 这里的参数是server的port
-    rpc::Client c("127.0.0.1", rpc::Constants::DEFAULT_PORT);
-
-    auto test_func = [&c]() {
+    auto test_func = []() {
+        // 这里的参数是server的port
+        rpc::Client c("10.0.16.4", rpc::Constants::DEFAULT_PORT);
         auto id_str = (std::ostringstream{} << std::this_thread::get_id()).str();
-        c.notify("subscribe", id_str);
+        // notify不会等待连接 可能会在连接还没建立时就写
+        std::cout << "call begin" << std::endl;
+        c.call("subscribe", id_str);
+        std::cout << "async_call begin" << std::endl;
         auto f = c.async_call("list");
 
         std::osyncstream(std::cout) << "do something else..." << std::endl;
@@ -47,9 +49,11 @@ int main() {
         }
     }
     catch(rpc::RpcError& e) {
-        auto err = e.error().get().as<std::tuple<int, std::string>>();
-        std::osyncstream(std::cout) << std::format("{}\nin function '{}': [error {}]: {}", e.what(), e.func_name(), 
-            std::get<0>(err), std::get<1>(err)) << std::endl;
+        {
+            auto err = e.error().get().as<std::tuple<int, std::string>>();
+            std::osyncstream(std::cout) << std::format("{}\nin function '{}': [error {}]: {}", e.what(), e.func_name(), 
+                std::get<0>(err), std::get<1>(err)) << std::endl;
+        }
         // 这就相当于是处理了异常
         return 1;
     }

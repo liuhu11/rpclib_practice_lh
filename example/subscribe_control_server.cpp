@@ -7,34 +7,42 @@
 #include <format>
 #include <vector>
 #include <iostream>
+#include <mutex>
 
 
 class Master {
 public:
     void subscribe(std::string id) {
+        update_time();
         clients_.insert(id);
     }
 
     std::vector<std::string> list() {
+        update_time();
         return std::vector<std::string>(clients_.cbegin(), clients_.cend());
     }
 
     uint32_t idle_time() {
         auto now = std::chrono::system_clock::now();
-        auto diff = now - last_time_;
-        return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+        {
+            std::lock_guard<std::mutex> lock(mut_);
+            auto diff = now - last_time_; 
+            return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+        }
     }
 
 private:
     void update_time() {
+        std::lock_guard<std::mutex> lock(mut_);
         last_time_ = std::chrono::system_clock::now();
     }
+    std::mutex mut_;
     std::set<std::string> clients_;
     std::chrono::time_point<std::chrono::system_clock> last_time_ = std::chrono::system_clock::now();
 };
 
 int main() {
-    rpc::Server srv(rpc::Constants::DEFAULT_PORT);
+    rpc::Server srv("10.0.16.4", rpc::Constants::DEFAULT_PORT);
     Master m;
     constexpr uint32_t MAX_IDLE_TIME = 5000;
 
@@ -57,7 +65,7 @@ int main() {
     }
 
     {
-        // 好像format不能格式化system_clock的时间点
+        // 好像format不能格式化steady_clock的时间点
         auto os = std::osyncstream(std::cout);
         os << std::format("[server] {0:%Y-%m-%d}T{0:%H:%M:%OS}Z - now subscribed clients: ", std::chrono::system_clock::now());
         for(auto id : m.list()) {
