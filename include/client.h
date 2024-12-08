@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "log/logger.h"
+#include "rpc_error.h"
 
 namespace rpc{
 

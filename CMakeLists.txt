@@ -4,6 +4,8 @@ project(rpc VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+option(ENABLE_EXAMPLES "Enable building examples" ON)
+
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/build/install")
 file(GLOB_RECURSE RPC_HEADERS 
     "${CMAKE_CURRENT_LIST_DIR}/include/*.h"
@@ -35,3 +37,8 @@ target_link_libraries(rpc_ ${Boost_LIBRARIES} msgpack-cxx)
 install(TARGETS rpc_ 
     LIBRARY DESTINATION lib
 )
+
+# cmake -DENABLE_EXAMPLES=ON ..
+if(ENABLE_EXAMPLES)
+    add_subdirectory(example)
+endif()

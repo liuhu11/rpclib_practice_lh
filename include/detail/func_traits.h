@@ -48,7 +48,7 @@ struct result_trait<void> {
 };
 
 template <typename T>
-using result_trait_t = result_trait<T>;
+using result_trait_t = result_trait<T>::type;
 }
 
 //! \brief Provides a small function traits implementation that

@@ -1,0 +1,69 @@
+#include "server.h"
+
+#include <thread>
+#include <set>
+#include <chrono>
+#include <cstdint>
+#include <format>
+#include <vector>
+#include <iostream>
+
+
+class Master {
+public:
+    void subscribe(std::string id) {
+        clients_.insert(id);
+    }
+
+    std::vector<std::string> list() {
+        return std::vector<std::string>(clients_.cbegin(), clients_.cend());
+    }
+
+    uint32_t idle_time() {
+        auto now = std::chrono::system_clock::now();
+        auto diff = now - last_time_;
+        return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+    }
+
+private:
+    void update_time() {
+        last_time_ = std::chrono::system_clock::now();
+    }
+    std::set<std::string> clients_;
+    std::chrono::time_point<std::chrono::system_clock> last_time_ = std::chrono::system_clock::now();
+};
+
+int main() {
+    rpc::Server srv(rpc::Constants::DEFAULT_PORT);
+    Master m;
+    constexpr uint32_t MAX_IDLE_TIME = 5000;
+
+    srv.bind("subscribe", [&m](std::string id) {
+        m.subscribe(id);
+    });
+
+    srv.bind("list", [&m]() {
+        return m.list();
+    });
+
+    srv.async_run();
+
+    while(true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        if(m.idle_time() > MAX_IDLE_TIME) {
+            srv.stop();
+            break;
+        }
+    }
+
+    {
+        // 好像format不能格式化system_clock的时间点
+        auto os = std::osyncstream(std::cout);
+        os << std::format("[server] {0:%Y-%m-%d}T{0:%H:%M:%OS}Z - now subscribed clients: ", std::chrono::system_clock::now());
+        for(auto id : m.list()) {
+            os << id << ",";
+        }
+        os << std::endl;
+    }
+    return 0;
+}

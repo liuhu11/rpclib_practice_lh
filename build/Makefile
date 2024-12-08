@@ -174,6 +174,32 @@ rpc_/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/rpc_.dir/build.make CMakeFiles/rpc_.dir/build
 .PHONY : rpc_/fast
 
+#=============================================================================
+# Target rules for targets named server
+
+# Build rule for target.
+server: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 server
+.PHONY : server
+
+# fast build rule for target.
+server/fast:
+	$(MAKE) $(MAKESILENT) -f example/CMakeFiles/server.dir/build.make example/CMakeFiles/server.dir/build
+.PHONY : server/fast
+
+#=============================================================================
+# Target rules for targets named client
+
+# Build rule for target.
+client: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 client
+.PHONY : client
+
+# fast build rule for target.
+client/fast:
+	$(MAKE) $(MAKESILENT) -f example/CMakeFiles/client.dir/build.make example/CMakeFiles/client.dir/build
+.PHONY : client/fast
+
 src/client.o: src/client.cpp.o
 .PHONY : src/client.o
 
@@ -474,7 +500,9 @@ help:
 	@echo "... install/strip"
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
+	@echo "... client"
 	@echo "... rpc_"
+	@echo "... server"
 	@echo "... src/client.o"
 	@echo "... src/client.i"
 	@echo "... src/client.s"

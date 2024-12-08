@@ -238,6 +238,9 @@ CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
+//Enable building examples
+ENABLE_EXAMPLES:BOOL=ON
+
 //The directory containing a CMake configuration file for boost_headers.
 boost_headers_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0
 
@@ -252,6 +255,15 @@ rpc_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
 rpc_SOURCE_DIR:STATIC=/home/lh/rpclib
+
+//Value Computed by CMake
+sample_BINARY_DIR:STATIC=/home/lh/rpclib/build/example
+
+//Value Computed by CMake
+sample_IS_TOP_LEVEL:STATIC=OFF
+
+//Value Computed by CMake
+sample_SOURCE_DIR:STATIC=/home/lh/rpclib/example
 
 
 ########################
@@ -360,7 +372,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=1
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=2
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP

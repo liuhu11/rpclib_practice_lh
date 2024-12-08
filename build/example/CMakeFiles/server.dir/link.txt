@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/server.dir/subscribe_control_server.cpp.o -o server  -Wl,-rpath,/home/lh/rpclib/build: ../librpc_.so 

@@ -8,6 +8,7 @@
 
 #include "dispatcher.h"
 #include "log/logger.h"
+#include "config.h"
 
 namespace rpc {
 namespace detail {
