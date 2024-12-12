@@ -11,7 +11,7 @@
 
 namespace rpc::detail {
 // 异步写 包含一个写队列
-class AsyncWriter : std::enable_shared_from_this<AsyncWriter> {
+class AsyncWriter : public std::enable_shared_from_this<AsyncWriter> {
 private:
     boost::asio::ip::tcp::socket socket_;
     boost::asio::io_context::strand write_strand_;

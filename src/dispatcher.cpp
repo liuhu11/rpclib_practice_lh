@@ -73,6 +73,7 @@ Response Dispatcher::dispatch_call(const msgpack::object msg, bool suppress_exce
         try {
             auto res = func_iter->second(args);
             return Response::make_result(id, std::move(res));
+            logger_.info("func finished");
         }
         // 一般用左值引用捕获异常 -- 可能需要修改异常
         catch(ClientError& e) {
@@ -89,10 +90,12 @@ Response Dispatcher::dispatch_call(const msgpack::object msg, bool suppress_exce
         catch(handler_error& e) {
             // doing nothing, the exception was only thrown to
             // return immediately
+            logger_.info("return by handler_error");
         }
         catch(handler_sepc_response& e) {
             // doing nothing, the exception was only thrown to
             // return immediately
+            logger_.info("return by handler_sepc_response");
         }
         catch(...) {
             if(!suppress_exception) {

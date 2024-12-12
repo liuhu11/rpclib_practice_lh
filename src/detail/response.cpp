@@ -30,6 +30,9 @@ sbuffer Response::data() const {
 
     // 注意.get()与->get()的不同
     // 前者调用shared_ptr的方法，后者调用存储的object_handle的方法
+    logger_.info(std::format("respone {} an error_ | {} a response", error_.get() == nullptr ? "without" : "with", 
+        result_.get() == nullptr ? "without" : "with"));
+    std::cout << std::format("error_: {}, result_: {}", error_ ? 1 : 0, result_ ? 1 : 0) << std::endl;
     response_type response(1, id_, error_.get() == nullptr ? object() : error_->get(), 
         result_.get() == nullptr ? object() : result_->get());
     // 将response序列化到data中

@@ -8,7 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <mutex>
-
+#include <syncstream>
 
 class Master {
 public:
@@ -42,7 +42,7 @@ private:
 };
 
 int main() {
-    rpc::Server srv("10.0.16.4", rpc::Constants::DEFAULT_PORT);
+    rpc::Server srv(rpc::Constants::DEFAULT_PORT);
     Master m;
     constexpr uint32_t MAX_IDLE_TIME = 5000;
 
@@ -51,6 +51,12 @@ int main() {
     });
 
     srv.bind("list", [&m]() {
+        std::osyncstream os(std::cout);
+        os << "list: " << std::endl;
+        for(const auto& str : m.list()) {
+            os << str << " "; 
+        }
+        os << std::endl;
         return m.list();
     });
 

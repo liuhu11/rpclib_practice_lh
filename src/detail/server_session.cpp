@@ -21,6 +21,7 @@ ServerSession::ServerSession(Server* srv, boost::asio::io_context* io,
         AsyncWriter(io, std::move(socket)), parent_(srv), io_(io), 
         read_strand_(*io), disp_(disp), unpac_(),  suppress_exceptions_(suppress_exceptions), 
         logger_(logging::LoggerFactory<>::create_logger("ServerSession")) {
+            logger_.trace("in ServerSession::ServerSession");
             unpac_.reserve_buffer(default_buffer_size);
 }
 

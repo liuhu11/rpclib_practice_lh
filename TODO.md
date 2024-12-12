@@ -12,3 +12,5 @@
 紧急：
 1. 注意osync什么时候emit
 2. handler的移动构造
+3. client.cpp state有什么用 -- 不能及时退出
+4. logger_有没有必要用mutable

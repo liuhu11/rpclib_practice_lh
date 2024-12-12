@@ -23,7 +23,7 @@ using msgpack::sbuffer;
 using msgpack::unpacked;
 using msgpack::unpacker;
 using rpc::detail::name_thread;
-using resolve_result = boost::asio::ip::basic_resolver_results<boost::asio::ip::tcp>;
+using resolve_result = boost::asio::ip::tcp::resolver::iterator;
 
 namespace rpc{
 static constexpr uint32_t default_buffer_size = rpc::Constants::DEFAULT_BUFFER_SIZE;
@@ -58,7 +58,7 @@ public:
     std::optional<error_code> conn_ec;
 public:
     impl(Client* parent_param, const std::string& addr_param, uint16_t port_param);
-    void do_connect(resolve_result endpoints);
+    void do_connect(resolve_result endpoint_it);
     void do_read();
     Client::ConnectionState connection_state() const;
     // 直接调用这个应该没有多线程保护
@@ -76,13 +76,13 @@ Client::impl::impl(Client* parent_param, const std::string& addr_param, uint16_t
         unpac.reserve_buffer(default_buffer_size);
 }
 
-void Client::impl::do_connect(resolve_result endpoints) {
+void Client::impl::do_connect(resolve_result endpoint_it) {
     parent->logger_.info("Initialting connection.");
     conn_ec = std::nullopt;
 
     // 异步执行完毕后 socket打开
-    boost::asio::async_connect(writer->socket(), endpoints, 
-        [this](error_code ec, tcp::socket::endpoint_type){
+    boost::asio::async_connect(writer->socket(), endpoint_it, 
+        [this](error_code ec, resolve_result){
             if(!ec) {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
                 parent->logger_.info(std::format("Client connected to {}:{}", addr, port));
@@ -232,8 +232,8 @@ Client::Client(const std::string& addr, uint16_t port)
     :logger_(logging::LoggerFactory<>::create_logger("Client")), pimpl_(std::make_unique<impl>(this, addr, port)) {
         tcp::resolver resolver(pimpl_->io);
         // 返回的是个range 但也可以当iter用
-        auto endpoints = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));
-        pimpl_->do_connect(endpoints);
+        auto endpoint_it = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));
+        pimpl_->do_connect(endpoint_it);
         std::thread io_thread([this](){
             name_thread("client");
             pimpl_->io.run();

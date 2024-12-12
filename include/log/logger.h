@@ -21,7 +21,7 @@ template <Level LoggerLevel, Handler... HandlerTypes>
 class Logger;
 
 // using起类型别名
-using DefaultLogger = Logger<Level::Warning, handlers::DefaultHandler<Level::Warning>>;
+using DefaultLogger = Logger<Level::Info, handlers::DefaultHandler<Level::Info>>;
 
 template <Level LoggerLevel, Handler... HandlerTypes>
     requires (sizeof...(HandlerTypes) > 0)
@@ -116,7 +116,7 @@ private:
 };
 
 // 日志记录器生成工厂
-template <Level LoggerLevel = Level::Warning>
+template <Level LoggerLevel = Level::Info>
 class LoggerFactory {
 public:
     template <Handler... HandlerTypes>
@@ -127,7 +127,7 @@ public:
     // 默认handler级别与logger一致
     // 参数必定不一样，是重载
     static Logger<LoggerLevel, handlers::DefaultHandler<LoggerLevel>> create_logger(const std::string& name) {
-        return Logger<LoggerLevel, handlers::DefaultHandler<LoggerLevel>>(name, std::make_tuple(handlers::DefaultHandler()));
+        return Logger<LoggerLevel, handlers::DefaultHandler<LoggerLevel>>(name, std::make_tuple(handlers::DefaultHandler<LoggerLevel>()));
     }
 };
 }

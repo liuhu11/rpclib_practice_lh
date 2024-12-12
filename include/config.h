@@ -10,7 +10,7 @@ using session_id_t = std::intptr_t;
 
 struct Constants final{
     static constexpr std::size_t DEFAULT_BUFFER_SIZE = 1024 << 10;
-    static constexpr std::uint16_t DEFAULT_PORT = 23123;
+    static constexpr std::uint16_t DEFAULT_PORT = 8080;
 };    
 }
 

@@ -1,8 +1,9 @@
 #!/bin/bash
 
-export LD_LIBRARY_PATH=/home/lighthouse/rpclib/build/install/lib:$LD_LIBRARY_PATH
+INSTALL_DIR=$PWD
+export LD_LIBRARY_PATH="$INSTALL_DIR/lib":$LD_LIBRARY_PATH
 
-CORE_DUMP_DIR="/home/lighthouse/rpclib/build/install/coredump"
+CORE_DUMP_DIR="$INSTALL_DIR/coredump"
 sudo mkdir -p $CORE_DUMP_DIR
 
 # 设置权限
@@ -18,10 +19,12 @@ ulimit -c unlimited
 # 输出当前设置
 echo "Core dump path set to: $(cat /proc/sys/kernel/core_pattern)"
 
-./bin/server
+./bin/server &
+sleep 1
 
+./bin/client &
+# ./bin/client &
+# ./bin/client &
+# ./bin/client &
 
-./bin/client
-./bin/client
-./bin/client
-./bin/client
+wait

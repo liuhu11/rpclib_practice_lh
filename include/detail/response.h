@@ -19,7 +19,7 @@ private:
     std::shared_ptr<msgpack::object_handle> error_;
     std::shared_ptr<msgpack::object_handle> result_;
     bool empty_;
-    logging::DefaultLogger logger_;
+    mutable logging::DefaultLogger logger_;
 public:
     // 协议版本，响应id，错误对象，结果对象
     using response_type = std::tuple<uint32_t, uint32_t, msgpack::object, msgpack::object>;
@@ -69,7 +69,7 @@ inline Response Response::make_result(uint32_t id, std::unique_ptr<msgpack::obje
     response.id_ = id;
     // 用uniqe_ptr&& 构造是shared_ptr的构造函数 而不是msgpack::object_handle的 弄清楚
     // 直接 = 也行
-    response.result_ = std::shared_ptr<msgpack::object_handle>(std::move(result));
+    response.result_ = std::move(result);
     return response;
 }
 
