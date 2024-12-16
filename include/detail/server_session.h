@@ -25,7 +25,7 @@ private:
     // sbuffer通常用以存储序列化后的数据
     msgpack::sbuffer output_buf_;
     const bool suppress_exceptions_;
-    logging::DefaultLogger logger_;
+    static logging::DefaultLogger logger_;
 public:
     ServerSession(Server* srv, boost::asio::io_context* io, boost::asio::ip::tcp::socket&& socket, 
         std::shared_ptr<Dispatcher> disp, bool suppress_exceptions);

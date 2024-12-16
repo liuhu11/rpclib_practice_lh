@@ -26,6 +26,7 @@ using rpc::detail::name_thread;
 using resolve_result = boost::asio::ip::tcp::resolver::iterator;
 
 namespace rpc{
+logging::DefaultLogger Client::logger_{logging::LoggerFactory<>::create_logger("Client")};
 static constexpr uint32_t default_buffer_size = rpc::Constants::DEFAULT_BUFFER_SIZE;
 
 struct Client::impl {
@@ -229,7 +230,7 @@ void Client::post(std::shared_ptr<msgpack::sbuffer> buffer, int idx,
 }
 
 Client::Client(const std::string& addr, uint16_t port)
-    :logger_(logging::LoggerFactory<>::create_logger("Client")), pimpl_(std::make_unique<impl>(this, addr, port)) {
+    :pimpl_(std::make_unique<impl>(this, addr, port)) {
         tcp::resolver resolver(pimpl_->io);
         // 返回的是个range 但也可以当iter用
         auto endpoint_it = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));

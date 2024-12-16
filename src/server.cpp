@@ -22,6 +22,7 @@ namespace ranges = std::ranges;
 
 
 namespace rpc {
+logging::DefaultLogger Server::logger_{logging::LoggerFactory<>::create_logger("Server")};
 struct Server::impl {
 public:
     Server* parent;
@@ -102,13 +103,13 @@ public:
 };
 
 Server::Server(uint16_t port):pimpl_(std::make_unique<impl>(this, port)),
-    disp_(std::make_shared<detail::Dispatcher>()), logger_(logging::LoggerFactory<>::create_logger("Server")) {
+    disp_(std::make_shared<detail::Dispatcher>()) {
         logger_.info(std::format("Created server on localhost:{}", port));
         pimpl_->start_accept();
 }
 
 // 在进入初始化函数体之前 所有的成员都已经构造好了 
-Server::Server(Server &&other) noexcept: logger_(std::move(other.logger_)) {
+Server::Server(Server &&other) noexcept {
     // 利用赋值运算符实现移动函数
     pimpl_ = std::move(other.pimpl_);
     disp_ = std::move(other.disp_);
@@ -116,7 +117,7 @@ Server::Server(Server &&other) noexcept: logger_(std::move(other.logger_)) {
 
 Server::Server(const std::string& address, uint16_t port)
     :pimpl_(std::make_unique<impl>(this, address, port)), 
-    disp_(std::make_shared<detail::Dispatcher>()), logger_(logging::LoggerFactory<>::create_logger("Server")){
+    disp_(std::make_shared<detail::Dispatcher>()) {
         logger_.info(std::format("Created server on {}:{}", address, port));
         pimpl_->start_accept();
 }
@@ -135,7 +136,6 @@ Server& Server::operator=(Server &&other) {
     // 也可以拷贝后交换代替显示的自赋值检查
     pimpl_ = std::move(other.pimpl_);
     disp_ = std::move(other.disp_);
-    logger_ = std::move(other.logger_);
     return *this;
 }
 

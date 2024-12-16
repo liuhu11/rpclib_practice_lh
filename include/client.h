@@ -31,7 +31,7 @@ private:
     };
 private:
     static constexpr double buffer_grow_factor_ = 1.8;
-    logging::DefaultLogger logger_;
+    static logging::DefaultLogger logger_;
     struct impl;
     std::unique_ptr<impl> pimpl_;
 public:

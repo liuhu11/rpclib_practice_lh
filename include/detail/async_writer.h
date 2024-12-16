@@ -17,7 +17,7 @@ private:
     boost::asio::io_context::strand write_strand_;
     std::atomic<bool> exit_{false};
     std::deque<msgpack::sbuffer> write_queue_;
-    logging::DefaultLogger logger_;
+    static logging::DefaultLogger logger_;
     
 public:
     // socket值传递改为右值引用传递

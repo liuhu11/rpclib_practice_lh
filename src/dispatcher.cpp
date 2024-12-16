@@ -12,6 +12,7 @@ namespace ranges = std::ranges;
 
 
 namespace rpc::detail {
+logging::DefaultLogger Dispatcher::logger_{logging::LoggerFactory<>::create_logger("Dispatcher")};
 void Dispatcher::enforce_unique_name(const std::string& func_name) const {
     if(funcs_.count(func_name) != 0) {
         throw std::logic_error(std::format("Function name already bound: '{}. Please use unique "
@@ -72,14 +73,16 @@ Response Dispatcher::dispatch_call(const msgpack::object msg, bool suppress_exce
         logger_.debug(std::format("Dispatching call to '{}'", name));
         try {
             auto res = func_iter->second(args);
-            return Response::make_result(id, std::move(res));
             logger_.info("func finished");
+            return Response::make_result(id, std::move(res));
         }
         // 一般用左值引用捕获异常 -- 可能需要修改异常
         catch(ClientError& e) {
+            logger_.info("client error");
             return Response::make_error(id, std::format("rpclib: {}", e.what()));
         }
         catch(std::exception& e) {
+            logger_.info("std::exception");
             if(!suppress_exception) {
                 throw;
             }
@@ -98,6 +101,7 @@ Response Dispatcher::dispatch_call(const msgpack::object msg, bool suppress_exce
             logger_.info("return by handler_sepc_response");
         }
         catch(...) {
+            logger_.info("unhandled error");
             if(!suppress_exception) {
                 throw;
             }
@@ -106,6 +110,7 @@ Response Dispatcher::dispatch_call(const msgpack::object msg, bool suppress_exce
                     "No further information available.", name, msg.via.array.size));
         }
     }
+    logger_.info("func not found");
     return Response::make_error(id, 
         std::format("rpclib: server could not find function '{0}' wtith argument count {1}.",
             name, msg.via.array.size));

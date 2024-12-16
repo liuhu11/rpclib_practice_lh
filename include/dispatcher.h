@@ -30,7 +30,7 @@ private:
 
     std::unordered_map<std::string, adaptor_type> funcs_;
     // 需要在LoggerFactory后加上<>以应用默认的模板参数
-    logging::DefaultLogger logger_ = logging::LoggerFactory<>::create_logger("Dispatcher");
+    static logging::DefaultLogger logger_;
 public:
     template <typename Func>
     void bind(const std::string& name, Func func);

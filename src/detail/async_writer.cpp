@@ -10,8 +10,10 @@ using boost::system::error_code;
 using msgpack::sbuffer;
 
 namespace rpc::detail {
+logging::DefaultLogger AsyncWriter::logger_{logging::LoggerFactory<>::create_logger("AsyncWriter")};
+
 AsyncWriter::AsyncWriter(io_context *io, tcp::socket&& socket):socket_(std::move(socket)),
-    write_strand_(*io), logger_(logging::LoggerFactory<>::create_logger("AsyncWriter")) {}
+    write_strand_(*io) {}
 
 void AsyncWriter::close() {
     // 先不管内存序的问题

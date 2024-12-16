@@ -13,4 +13,4 @@
 1. 注意osync什么时候emit
 2. handler的移动构造
 3. client.cpp state有什么用 -- 不能及时退出
-4. logger_有没有必要用mutable
+4. logger_有没有必要用mutable 在response::data中无法正常记录日志

@@ -14,13 +14,14 @@ using boost::system::error_code;
 using msgpack::unpacked;
 
 namespace rpc::detail {
+logging::DefaultLogger ServerSession::logger_{logging::LoggerFactory<>::create_logger("ServerSession")};
+
 static constexpr size_t default_buffer_size = rpc::Constants::DEFAULT_BUFFER_SIZE;
 
 ServerSession::ServerSession(Server* srv, boost::asio::io_context* io, 
     boost::asio::ip::tcp::socket&& socket, std::shared_ptr<Dispatcher> disp, bool suppress_exceptions):
         AsyncWriter(io, std::move(socket)), parent_(srv), io_(io), 
-        read_strand_(*io), disp_(disp), unpac_(),  suppress_exceptions_(suppress_exceptions), 
-        logger_(logging::LoggerFactory<>::create_logger("ServerSession")) {
+        read_strand_(*io), disp_(disp), unpac_(),  suppress_exceptions_(suppress_exceptions) {
             logger_.trace("in ServerSession::ServerSession");
             unpac_.reserve_buffer(default_buffer_size);
 }
@@ -93,7 +94,8 @@ void ServerSession::do_read() {
                         }
 
                         if(!resp.is_empty()) {
-                            write_strand().post([this, self, &resp, z]() {
+                            // 此处不能引用捕获 会有悬垂引用
+                            write_strand().post([this, self, resp, z]() {
                                 write(resp.data());
                             });
                         }

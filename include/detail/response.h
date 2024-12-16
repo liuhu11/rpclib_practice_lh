@@ -19,7 +19,6 @@ private:
     std::shared_ptr<msgpack::object_handle> error_;
     std::shared_ptr<msgpack::object_handle> result_;
     bool empty_;
-    mutable logging::DefaultLogger logger_;
 public:
     // 协议版本，响应id，错误对象，结果对象
     using response_type = std::tuple<uint32_t, uint32_t, msgpack::object, msgpack::object>;

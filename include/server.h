@@ -20,7 +20,7 @@ private:
     struct impl;
     std::unique_ptr<impl> pimpl_;
     std::shared_ptr<detail::Dispatcher> disp_;
-    logging::DefaultLogger logger_;
+    static logging::DefaultLogger logger_;
 public:
     //! \brief Constructs a server that listens on the localhost on the
     //! specified port.

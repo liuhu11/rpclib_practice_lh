@@ -3,13 +3,16 @@
 #include <cstdint>
 #include <memory>
 
+#include "detail/response.h"
+
 int main() {
     auto z = std::make_unique<msgpack::zone>();
     auto res = msgpack::object(std::vector<std::string>{"13", "22"}, *z);
-    auto p = std::make_shared<msgpack::object_handle>(res, std::move(z));
-    std::tuple<uint32_t, uint32_t, msgpack::object, msgpack::object> t(1, 2, msgpack::object{}, p->get());
-    msgpack::sbuffer data;
-    msgpack::pack(data, t);
+    auto p = std::make_unique<msgpack::object_handle>(res, std::move(z));
+
+    auto resp = rpc::detail::Response::make_result(1, std::move(p));
+
+    auto data = resp.data();
 
     return 0;
 }
