@@ -8,6 +8,7 @@
 8. 注意所有的atomic和mutex的意义
 9. 看看cookbook
 10. 改正所有的log.h
+11. 返回用户异常
 
 紧急：
 1. 注意osync什么时候emit

@@ -23,7 +23,7 @@ using msgpack::sbuffer;
 using msgpack::unpacked;
 using msgpack::unpacker;
 using rpc::detail::name_thread;
-using resolve_result = boost::asio::ip::tcp::resolver::iterator;
+using endpoints_range = boost::asio::ip::basic_resolver_results<boost::asio::ip::tcp>;
 
 namespace rpc{
 logging::DefaultLogger Client::logger_{logging::LoggerFactory<>::create_logger("Client")};
@@ -59,7 +59,7 @@ public:
     std::optional<error_code> conn_ec;
 public:
     impl(Client* parent_param, const std::string& addr_param, uint16_t port_param);
-    void do_connect(resolve_result endpoint_it);
+    void do_connect(endpoints_range endpoints);
     void do_read();
     Client::ConnectionState connection_state() const;
     // 直接调用这个应该没有多线程保护
@@ -77,13 +77,13 @@ Client::impl::impl(Client* parent_param, const std::string& addr_param, uint16_t
         unpac.reserve_buffer(default_buffer_size);
 }
 
-void Client::impl::do_connect(resolve_result endpoint_it) {
+void Client::impl::do_connect(endpoints_range endpoints) {
     parent->logger_.info("Initialting connection.");
     conn_ec = std::nullopt;
 
     // 异步执行完毕后 socket打开
-    boost::asio::async_connect(writer->socket(), endpoint_it, 
-        [this](error_code ec, resolve_result){
+    boost::asio::async_connect(writer->socket(), endpoints, 
+        [this](error_code ec, tcp::endpoint){
             if(!ec) {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
                 parent->logger_.info(std::format("Client connected to {}:{}", addr, port));
@@ -233,8 +233,8 @@ Client::Client(const std::string& addr, uint16_t port)
     :pimpl_(std::make_unique<impl>(this, addr, port)) {
         tcp::resolver resolver(pimpl_->io);
         // 返回的是个range 但也可以当iter用
-        auto endpoint_it = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));
-        pimpl_->do_connect(endpoint_it);
+        auto endpoints = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));
+        pimpl_->do_connect(endpoints);
         std::thread io_thread([this](){
             name_thread("client");
             pimpl_->io.run();

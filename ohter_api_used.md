@@ -1,11 +1,123 @@
 # 注意事项
 
 1. 本文件所有列举都只列出关键部分，并不全面
-1. todo：找些相关链接帮助理解
+1. 文档链接一般包含了入门的教程
+1. 有些我中文不太描述的清楚的地方，会大篇幅的引用相关链接的英文原文
+1. todo：找些相关链接帮助理解  
+1. todo：重新整理boost.asio和msgpack的api介绍
 
 ## boost::asio
 
+[文档](https://www.boost.org/doc/libs/1_77_0/doc/html/boost_asio.html)
+
 [asio 手册](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference.html)
+
+### 其他链接
+
+1. [Completion Tokens - 1.87.0](https://www.boost.org/doc/libs/1_87_0/doc/html/boost_asio/overview/model/completion_tokens.html)
+
+   A key goal of Boost.Asio's asynchronous model is to support multiple composition mechanisms. This is achieved via a *completion token*, which **the user passes to an asynchronous operation's initiating function** to customise the API surface of the library. By convention, the completion token is the **final argument** to an asynchronous operation's initiating function.
+
+   ```c++
+   template <completion_signature... Signatures>
+   // Then, the operation's initiating function takes the completion signature, completion token, and its
+   // internal implementation and passes them to the async_result trait. The async_result trait is a 
+   // customisation point that combines these to first produce a concrete completion handler, and then 
+   // launch the operation.
+   struct async_result<deferred_t, Signatures...>
+   {
+     template <class Initiation, class... Args>
+     // async_read_some可以直接调用该函数
+     // In practice we should call the async_initiate helper function, rather than use the async_result
+     // trait directly. The async_initiate function automatically performs the necessary decay and forward 
+     // of the completion token, and also enables backwards compatibility with legacy completion token 
+     // implementations.
+     static auto initiate(Initiation initiation, deferred_t, Args... args)
+     {
+       return [
+           initiation = std::move(initiation),
+           arg_pack = std::make_tuple(std::move(args)...)
+         ](auto&& token) mutable
+       {
+         return std::apply(
+             [&](auto&&... args)
+             {
+               return async_result<decay_t<decltype(token)>, Signatures...>::initiate(
+                   std::move(initiation),
+                   // 这也是完美转发
+                   // https://zh.cppreference.com/w/cpp/language/decltype
+                   // token直接作为参数传参还是左值
+                   // https://zh.cppreference.com/w/cpp/utility/forward -- 注意其中的返回值
+                   std::forward<decltype(token)>(token),
+                   std::forward<decltype(args)>(args)...
+                 );
+             },
+             std::move(arg_pack)
+           );
+       };
+     }
+   };
+   ```
+
+   使用use_future, use_awaitable, yield_context等completion token会使得相应的异步函数表现得不同
+
+   todo: 学一下协程
+
+2. [Asynchronous Operations - 1.87.0](https://www.boost.org/doc/libs/1_87_0/doc/html/boost_asio/overview/model/async_ops.html)
+   If an asynchronous operation requires a **temporary resource** (such as memory, a file descriptor, or a thread), **this resource is released before calling the completion handler.**
+
+3. [Timer.4 - Using a member function as a completion handler - 1.87.0](https://www.boost.org/doc/libs/1_87_0/doc/html/boost_asio/tutorial/tuttimer4.html)
+
+
+   ```c++
+   #include <functional>
+   #include <iostream>
+   #include <boost/asio.hpp>
+   
+   class printer
+   {
+   public:
+     printer(boost::asio::io_context& io)
+       : timer_(io, boost::asio::chrono::seconds(1)),
+         count_(0)
+     {
+       // You will note that the boost::asio::placeholders::error placeholder is not specified here, 
+       // as the print member function does not accept an error object as a parameter.
+       // todo: 为什么可以这样？
+       timer_.async_wait(std::bind(&printer::print, this));
+     }
+   
+     ~printer()
+     {
+       std::cout << "Final count is " << count_ << std::endl;
+     }
+   
+     void print()
+     {
+       if (count_ < 5)
+       {
+         std::cout << count_ << std::endl;
+         ++count_;
+   
+         timer_.expires_at(timer_.expiry() + boost::asio::chrono::seconds(1));
+         timer_.async_wait(std::bind(&printer::print, this));
+       }
+     }
+   
+   private:
+     boost::asio::steady_timer timer_;
+     int count_;
+   };
+   
+   int main()
+   {
+     boost::asio::io_context io;
+     printer p(io);
+     io.run();
+   
+     return 0;
+   }
+   ```
 
 注意：
 
@@ -52,15 +164,15 @@
 1. [io_context::io_context - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context/io_context.html)
 1. [io_context::post - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context/post.html)
 1. [io_context::stop - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context/stop.html)
+1. run
 
 ### io_context::strand
 
-[io_  `	` 	1context::strand - 1.86.0 (boost.org)](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context__strand.htmq2l)
+[io_context::strand - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/io_context__strand.html)
 
 作用如下：
 
-1. 保证顺序执行
-2. 与io_context配合
+1. The [`io_context::strand`](https://www.boost.org/doc/libs/1_87_0/doc/html/boost_asio/reference/io_context__strand.html) class provides the ability to post and dispatch handlers with the guarantee that **none of those handlers will execute concurrently.**
 
 成员函数：
 
@@ -133,14 +245,18 @@
 成员函数：
 
 1.  [构造函数 ip::basic_endpoint::basic_endpoint - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/basic_endpoint.html)
-2. [Get the port associated with the endpoint. The port number is always in the host's byte order. ip::basic_endpoint::port - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/port.html)
-3. [Get the IP address associated with the endpoint. ip::basic_endpoint::address - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/address.html)
+2.  [Get the port associated with the endpoint. The port number is always in the host's byte order. ip::basic_endpoint::port - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/port.html)
+3.  [Get the IP address associated with the endpoint. ip::basic_endpoint::address - 1.86.0](https://www.boost.org/doc/libs/1_86_0/doc/html/boost_asio/reference/ip__basic_endpoint/address.html)
 
 ## msgpack
+
+[文档](https://github.com/msgpack/msgpack-c/wiki/v2_0_cpp_overview)
 
 [msgpack手册](https://c.msgpack.org/cpp/namespacemsgpack.html)
 
 [github地址](https://github.com/msgpack/msgpack-c)
+
+**msgpack手册有些函数好像与我使用的代码不完全对的上**
 
 ### object
 
@@ -165,7 +281,7 @@
    template<typename T>
    T& convert(T& v) const;
    ```
-   
+
 2. ```c++
    // Constructer
    // The object is constructed on the zone z. 
@@ -173,6 +289,18 @@
    object (const T &v, msgpack::zone &z);
    // 支持复制
    ```
+
+3. ```c++
+   template <typename T>
+   inline typename std::enable_if<msgpack::has_as<T>::value, T>::type object::as() const 
+   
+   template <typename T>
+   inline typename std::enable_if<!msgpack::has_as<T>::value, T>::type object::as() const
+       
+   Get value as T.
+   ```
+
+4. 
 
 嵌套类型：
 
@@ -281,6 +409,8 @@ https://c.msgpack.org/cpp/classmsgpack_1_1sbuffer.html
 作用如下：
 
 1. msgpack::unpacker用于从包含msgpack格式数据的缓冲区中解包出msgpack::object
+1. 使用unpacker时，默认对str, bin, ext使用引用而非拷贝
+1. unpacker的各个内置的buffer都有引用计数控制生命周期（当前正在解包的buffer和被zone的终结器持有的buffer会对应的增加引用计数）
 
 成员函数：
 
@@ -311,7 +441,7 @@ https://c.msgpack.org/cpp/classmsgpack_1_1sbuffer.html
    bool next(msgpack::object_handle& result,
             bool& referenced);
    ```
-   
+
 5. ```c++
    // After returning this function, buffer_capacity() returns at least 'size'.
    void reserve_buffer(size_t size = MSGPACK_UNPACKER_RESERVE_SIZE);
@@ -333,6 +463,13 @@ msgpack::object_handle unpack(const char* data, std::size_t len,
                               unpack_reference_func f = MSGPACK_NULLPTR, 
                               void* user_data = MSGPAK_NULLPTR, 
                               const unpack_limit& limit = unpack_limit());
+
+msgpack::object_handle unpack (const char* data, std::size_t len,
+								bool & 	referenced,
+                                unpack_reference_func f = MSGPACK_NULLPTR,
+                                void* user_data = MSGPACK_NULLPTR,
+                                unpack_limit const& limit = unpack_limit() 
+)	
 ```
 
 
@@ -342,6 +479,7 @@ msgpack::object_handle unpack(const char* data, std::size_t len,
 作用如下：
 
 1. 从包含MessagePack格式数据的缓冲区中解包数据，转换为msgpack::unpacked
+1. 所有的数据都默认拷贝至zone
 
 ### clone()
 
@@ -494,9 +632,35 @@ void pack(Stream& s, const T& v);
 
 [std::function - cppreference.com](https://zh.cppreference.com/w/cpp/utility/functional/function)
 
-### ranges::transform
+### ranges::transform()
 
 其中的投影可以是任意可调用对象
 
+### osyncstream
+
+[提供机制以对写入同一流的各线程进行同步 std::basic_osyncstream - cppreference.com](https://zh.cppreference.com/w/cpp/io/basic_osyncstream)
+
+### filesystem
+
+#### absolute
+
+[返回绝对路径 std::filesystem::absolute - cppreference.com](https://zh.cppreference.com/w/cpp/filesystem/absolute)
+
+#### path
+
+[std::filesystem::path - cppreference.com](https://zh.cppreference.com/w/cpp/filesystem/path)
+
+#### create_directories
+
+[递归创建多级目录 std::filesystem::create_directory, std::filesystem::create_directories - cppreference.com](https://zh.cppreference.com/w/cpp/filesystem/create_directory)
+
 ## tips
+
+### 名字查找
+
+[名字查找 -](https://zh.cppreference.com/w/cpp/language/lookup) [cppreference.com](http://cppreference.com/)
+
+模板的名字查找有两次（待决名相关的会推迟到第二次）
+
+
 

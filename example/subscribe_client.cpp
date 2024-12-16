@@ -17,9 +17,7 @@ int main() {
         rpc::Client c("127.0.0.1", rpc::Constants::DEFAULT_PORT);
         auto id_str = (std::ostringstream{} << std::this_thread::get_id()).str();
         // notify不会等待连接 可能会在连接还没建立时就写
-        std::cout << "call begin" << std::endl;
         c.notify("subscribe", id_str);
-        std::cout << "async_call begin" << std::endl;
         auto f = c.async_call("list");
 
         std::osyncstream(std::cout) << "do something else..." << std::endl;
@@ -44,7 +42,7 @@ int main() {
 
     try {
         std::vector<std::jthread> threads;
-        for(int i = 0; i != 1; ++i) {
+        for(int i = 0; i != 5; ++i) {
             threads.emplace_back(test_func);
         }
     }

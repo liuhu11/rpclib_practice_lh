@@ -63,6 +63,7 @@ void ServerSession::do_read() {
                     auto msg_obj = result.get();
                     output_buf_.clear();
                     // any worker thread can take this call
+                    // 使用shared_ptr管理zone
                     std::shared_ptr<msgpack::zone> z(result.zone().release());
                     io_->post([this, self, msg_obj, z]() {
                         this_handler().clear();

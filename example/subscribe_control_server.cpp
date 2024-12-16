@@ -51,12 +51,6 @@ int main() {
     });
 
     srv.bind("list", [&m]() {
-        std::osyncstream os(std::cout);
-        os << "list: " << std::endl;
-        for(const auto& str : m.list()) {
-            os << str << " "; 
-        }
-        os << std::endl;
         return m.list();
     });
 
@@ -65,6 +59,7 @@ int main() {
     while(true) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         if(m.idle_time() > MAX_IDLE_TIME) {
+            std::cout << "server stop" << std::endl;
             srv.stop();
             break;
         }

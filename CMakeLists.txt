@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # set(CMAKE_BUILD_TYPE Debug)
 
 option(ENABLE_EXAMPLES "Enable building examples" ON)
-option(ENABLE_TEST "Enable building test" ON)
+option(ENABLE_TEST "Enable building test" OFF)
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/build/install")
 file(GLOB_RECURSE RPC_HEADERS 

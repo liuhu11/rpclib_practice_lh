@@ -5,6 +5,8 @@ using msgpack::object_handle;
 using msgpack::sbuffer;
 
 namespace rpc::detail {
+logging::DefaultLogger Response::logger_{logging::LoggerFactory<>::create_logger("Response")};
+
 Response::Response():id_(0), empty_(false) {}
 
 // 这里用了委托构造函数
@@ -30,8 +32,8 @@ sbuffer Response::data() const {
 
     // 注意.get()与->get()的不同
     // 前者调用shared_ptr的方法，后者调用存储的object_handle的方法
-    std::cout << std::format("respone {} an error_ | {} a response", error_.get() == nullptr ? "without" : "with", 
-        result_.get() == nullptr ? "without" : "with") << std::endl;
+    logger_.info(std::format("respone {} an error_ | {} a response", error_.get() == nullptr ? "without" : "with", 
+        result_.get() == nullptr ? "without" : "with"));
     response_type response(1, id_, error_.get() == nullptr ? object() : error_->get(), 
         result_.get() == nullptr ? object() : result_->get());
     // 将response序列化到data中

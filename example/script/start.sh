@@ -23,8 +23,8 @@ echo "Core dump path set to: $(cat /proc/sys/kernel/core_pattern)"
 sleep 1
 
 ./bin/client &
-# ./bin/client &
-# ./bin/client &
-# ./bin/client &
+./bin/client &
+./bin/client &
+./bin/client &
 
 wait
