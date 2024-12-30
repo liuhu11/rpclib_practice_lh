@@ -50,15 +50,33 @@ void AsyncWriter::do_write() {
 
     // 第三个参数是回调的handler
     async_write(socket_, buffer(item.data(), item.size()), write_strand_.wrap(
-        [this, self](const error_code& ec, size_t transferred){
+        [this, self, &item](const error_code& ec, size_t transferred){
             // 不关心传输了多少
             (void)transferred;
             if(!ec) {
+                // 在成员函数中定义的lambda 可以访问私有成员
                 write_queue_.pop_front();
 
                 // 可以写的话继续异步写
                 if(write_queue_.size() > 0 && exit_.load() == false) {
                     do_write();
+                }
+            }
+            else if(ec == boost::asio::error::broken_pipe) {
+                auto& item = write_queue_.front();
+                auto o = msgpack::unpack(item.data(), item.size());
+                auto arg_num = o.get().via.array.size;
+                // notify并不关心有无连接成功
+                if(arg_num == 3) {
+                    logger_.info("Ignore an error(broken_pipe) while notify");
+                    write_queue_.pop_front();
+
+                    if(write_queue_.size() > 0 && exit_.load() == false) {
+                        do_write();
+                    }
+                }
+                else {
+                    logger_.error(std::format("Error while writing to socket: {} | '{}'", ec.value(), ec.message()));
                 }
             }
             else {

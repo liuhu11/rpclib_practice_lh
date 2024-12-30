@@ -19,11 +19,13 @@ ulimit -c unlimited
 # 输出当前设置
 echo "Core dump path set to: $(cat /proc/sys/kernel/core_pattern)"
 
-./bin/server &
-sleep 1
+./bin/client &
+./bin/client &
+sleep 3
 
-./bin/client &
-./bin/client &
+./bin/server &
+sleep 3
+
 ./bin/client &
 ./bin/client &
 

@@ -37,7 +37,16 @@ private:
 public:
     // 异步连接
     // addr可以使ip地址也可以是域名
-    Client(const std::string& addr, uint16_t port);
+    Client(const std::string& addr, uint16_t port, std::function<bool()> reconnectable = [failure_count = 0]() mutable -> bool {
+        static constexpr int max_attempt_times = 5;
+        ++failure_count;
+        if(failure_count != max_attempt_times) {
+            auto wait_s = std::chrono::seconds(2 << (failure_count - 1));
+            std::this_thread::sleep_for(wait_s);
+            return true;
+        }
+        return false;
+    });
 
     Client(const Client&) = delete;
 

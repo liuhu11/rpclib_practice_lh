@@ -7,6 +7,7 @@
 #include <thread>
 #include <unordered_map>
 #include <utility>
+#include <functional>
 
 #include "detail/async_writer.h"
 #include "client.h"
@@ -23,7 +24,7 @@ using msgpack::sbuffer;
 using msgpack::unpacked;
 using msgpack::unpacker;
 using rpc::detail::name_thread;
-using endpoints_range = boost::asio::ip::basic_resolver_results<boost::asio::ip::tcp>;
+using endpoints_range = boost::asio::ip::tcp::resolver::results_type;
 
 namespace rpc{
 logging::DefaultLogger Client::logger_{logging::LoggerFactory<>::create_logger("Client")};
@@ -55,11 +56,13 @@ public:
     std::thread io_thread;
     std::atomic<Client::ConnectionState> state;
     std::shared_ptr<detail::AsyncWriter> writer;
+    std::function<bool()> reconnectable;
     std::optional<int64_t> timeout_val;
     std::optional<error_code> conn_ec;
 public:
-    impl(Client* parent_param, const std::string& addr_param, uint16_t port_param);
+    impl(Client* parent_param, const std::string& addr_param, uint16_t port_param, std::function<bool()>&& reconnectable);
     void do_connect(endpoints_range endpoints);
+    void do_connect(endpoints_range endpoints, std::function<bool()>&& reconnectable);
     void do_read();
     Client::ConnectionState connection_state() const;
     // 直接调用这个应该没有多线程保护
@@ -69,21 +72,18 @@ public:
     void clear_timeout();
 };
 
-Client::impl::impl(Client* parent_param, const std::string& addr_param, uint16_t port_param)
+Client::impl::impl(Client* parent_param, const std::string& addr_param, uint16_t port_param, std::function<bool()>&& reconnectable)
     :parent(parent_param), io(), strand(io), call_idx(0), addr(addr_param), port(port_param),
     is_connected(false), state(Client::ConnectionState::initial), 
     // 此时这个socket只是被构造，还没有打开
-    writer(std::make_shared<detail::AsyncWriter>(&io, tcp::socket(io))) {
+    // mutable允许lambda修改复制捕获的对象，以及调用它们的非 const 成员函数。
+    writer(std::make_shared<detail::AsyncWriter>(&io, tcp::socket(io))), reconnectable(std::move(reconnectable)) {
         unpac.reserve_buffer(default_buffer_size);
 }
 
-void Client::impl::do_connect(endpoints_range endpoints) {
-    parent->logger_.info("Initialting connection.");
-    conn_ec = std::nullopt;
-
-    // 异步执行完毕后 socket打开
+void Client::impl::do_connect(endpoints_range endpoints, std::function<bool()>&& reconnectable) {
     boost::asio::async_connect(writer->socket(), endpoints, 
-        [this](error_code ec, tcp::endpoint){
+        [this, endpoints, reconnectable = std::move(reconnectable)](error_code ec, tcp::endpoint) mutable {
             if(!ec) {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
                 parent->logger_.info(std::format("Client connected to {}:{}", addr, port));
@@ -91,6 +91,39 @@ void Client::impl::do_connect(endpoints_range endpoints) {
                 state.store(Client::ConnectionState::connected);
                 conn_finished.notify_all();
                 do_read();
+            }
+            else if(reconnectable()) {
+                do_connect(endpoints, std::move(reconnectable));
+            }
+            else {
+                std::unique_lock<std::mutex> lock(mut_conn_finished);
+                parent->logger_.error(std::format("Error during connection: {} | '{}'", ec.value(), ec.message()));
+                state.store(Client::ConnectionState::disconnected);
+                conn_ec = ec;
+                conn_finished.notify_all();
+            }
+        });
+}
+
+void Client::impl::do_connect(endpoints_range endpoints) {
+    parent->logger_.info("Initialting connection.");
+    conn_ec = std::nullopt;
+
+    auto re = reconnectable;
+
+    // 异步执行完毕后 socket打开
+    boost::asio::async_connect(writer->socket(), endpoints, 
+        [this, endpoints, reconnectable = std::move(re)](error_code ec, tcp::endpoint) mutable {
+            if(!ec) {
+                std::unique_lock<std::mutex> lock(mut_conn_finished);
+                parent->logger_.info(std::format("Client connected to {}:{}", addr, port));
+                is_connected = true;
+                state.store(Client::ConnectionState::connected);
+                conn_finished.notify_all();
+                do_read();
+            }
+            else if(reconnectable()) {
+                do_connect(endpoints, std::move(reconnectable));
             }
             else {
                 std::unique_lock<std::mutex> lock(mut_conn_finished);
@@ -229,8 +262,8 @@ void Client::post(std::shared_ptr<msgpack::sbuffer> buffer, int idx,
         });
 }
 
-Client::Client(const std::string& addr, uint16_t port)
-    :pimpl_(std::make_unique<impl>(this, addr, port)) {
+Client::Client(const std::string& addr, uint16_t port, std::function<bool()> reconnectable)
+    :pimpl_(std::make_unique<impl>(this, addr, port, std::move(reconnectable))) {
         tcp::resolver resolver(pimpl_->io);
         // 返回的是个range 但也可以当iter用
         auto endpoints = resolver.resolve(pimpl_->addr, std::to_string(pimpl_->port));

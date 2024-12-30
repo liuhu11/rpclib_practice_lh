@@ -44,13 +44,14 @@ private:
 int main() {
     rpc::Server srv(rpc::Constants::DEFAULT_PORT);
     Master m;
-    constexpr uint32_t MAX_IDLE_TIME = 5000;
+    constexpr uint32_t MAX_IDLE_TIME = 10000;
 
     srv.bind("subscribe", [&m](std::string id) {
         m.subscribe(id);
     });
 
     srv.bind("list", [&m]() {
+        std::cout << "list\n";
         return m.list();
     });
 
