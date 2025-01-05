@@ -51,7 +51,7 @@ int main() {
     });
 
     srv.bind("list", [&m]() {
-        std::cout << "list\n";
+        // std::cout << "list\n";
         return m.list();
     });
 
