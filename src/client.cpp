@@ -48,9 +48,9 @@ public:
 
     // 这个atomic感觉不需要
     bool is_connected;
-    std::condition_variable conn_finished;
+    // std::condition_variable conn_finished;
     // 好像主要是为了防止异步的connect没搞完
-    std::mutex mut_conn_finished;
+    // std::mutex mut_conn_finished;
 
     // 此处有io_thread造成的多线程问题
     std::thread io_thread;
@@ -58,7 +58,8 @@ public:
     std::shared_ptr<detail::AsyncWriter> writer;
     std::function<bool()> reconnectable;
     std::optional<int64_t> timeout_val;
-    std::optional<error_code> conn_ec;
+    // std::optional<error_code> conn_ec;
+    std::vector<msgpack::sbuffer> pending_calls;
 public:
     impl(Client* parent_param, const std::string& addr_param, uint16_t port_param, std::function<bool()>&& reconnectable);
     void do_connect(endpoints_range endpoints);
@@ -85,29 +86,35 @@ void Client::impl::do_connect(endpoints_range endpoints, std::function<bool()>&&
     boost::asio::async_connect(writer->socket(), endpoints, 
         [this, endpoints, reconnectable = std::move(reconnectable)](error_code ec, tcp::endpoint) mutable {
             if(!ec) {
-                std::unique_lock<std::mutex> lock(mut_conn_finished);
                 parent->logger_.info(std::format("Client connected to {}:{}", addr, port));
+                // std::unique_lock<std::mutex> lock(mut_conn_finished);
                 is_connected = true;
                 state.store(Client::ConnectionState::connected);
-                conn_finished.notify_all();
+                // conn_finished.notify_all();
+                strand.post([=, this](){
+                    for(auto& pending_call : pending_calls) {
+                        write(std::move(pending_call));
+                    }
+                });
                 do_read();
             }
             else if(reconnectable()) {
                 do_connect(endpoints, std::move(reconnectable));
             }
             else {
-                std::unique_lock<std::mutex> lock(mut_conn_finished);
                 parent->logger_.error(std::format("Error during connection: {} | '{}'", ec.value(), ec.message()));
+                // std::unique_lock<std::mutex> lock(mut_conn_finished);
                 state.store(Client::ConnectionState::disconnected);
-                conn_ec = ec;
-                conn_finished.notify_all();
+                throw rpc::SystemError(ec);
+                // conn_ec = ec;
+                // conn_finished.notify_all();
             }
         });
 }
 
 void Client::impl::do_connect(endpoints_range endpoints) {
     parent->logger_.info("Initialting connection.");
-    conn_ec = std::nullopt;
+    // conn_ec = std::nullopt; 默认初始化
 
     auto re = reconnectable;
 
@@ -115,34 +122,41 @@ void Client::impl::do_connect(endpoints_range endpoints) {
     boost::asio::async_connect(writer->socket(), endpoints, 
         [this, endpoints, reconnectable = std::move(re)](error_code ec, tcp::endpoint) mutable {
             if(!ec) {
-                std::unique_lock<std::mutex> lock(mut_conn_finished);
                 parent->logger_.info(std::format("Client connected to {}:{}", addr, port));
+                // std::unique_lock<std::mutex> lock(mut_conn_finished);
                 is_connected = true;
                 state.store(Client::ConnectionState::connected);
-                conn_finished.notify_all();
+                // conn_finished.notify_all();
+                strand.post([=, this](){
+                    for(auto& pending_call : pending_calls) {
+                        write(std::move(pending_call));
+                    }
+                });
                 do_read();
             }
             else if(reconnectable()) {
                 do_connect(endpoints, std::move(reconnectable));
             }
             else {
-                std::unique_lock<std::mutex> lock(mut_conn_finished);
                 parent->logger_.error(std::format("Error during connection: {} | '{}'", ec.value(), ec.message()));
+                // std::unique_lock<std::mutex> lock(mut_conn_finished);
                 state.store(Client::ConnectionState::disconnected);
-                conn_ec = ec;
-                conn_finished.notify_all();
+                throw rpc::SystemError(ec);
+                // conn_ec = ec;
+                // conn_finished.notify_all();
             }
         });
 }
 
 void Client::impl::do_read() {
     parent->logger_.trace("do_read");
+    std::cout << "do_read" << std::endl;
     constexpr size_t max_read_bytes = default_buffer_size;
     writer->socket().async_read_some(buffer(unpac.buffer(), max_read_bytes),
     // 原作者认为这里没必要捕获 因为max_read_bytes是constexpr
     [this, max_read_bytes](error_code ec, size_t lenth){
         if(!ec) {
-            parent->logger_.trace(std::format("Read chunk of size {}", lenth));
+            parent->logger_.info(std::format("Read chunk of size {}", lenth));
 
             // 含义：消耗了多少缓冲区
             unpac.buffer_consumed(lenth);
@@ -219,31 +233,31 @@ void Client::impl::clear_timeout() {
 }
 
 namespace rpc {
-void Client::wait_conn() {
-    std::unique_lock<std::mutex> lock(pimpl_->mut_conn_finished);
-    // 防止假唤醒
-    while(pimpl_->is_connected == false) {
-        // 还要判断这个 用while挺好的
-        // 否则可以使用带 Predicate 的重载
-        auto ec = pimpl_->conn_ec;
-        if(ec.has_value()) {
-            throw rpc::SystemError(ec.value());
-        }
+// void Client::wait_conn() {
+//     std::unique_lock<std::mutex> lock(pimpl_->mut_conn_finished);
+//     // 防止假唤醒
+//     while(pimpl_->is_connected == false) {
+//         // 还要判断这个 用while挺好的
+//         // 否则可以使用带 Predicate 的重载
+//         auto ec = pimpl_->conn_ec;
+//         if(ec.has_value()) {
+//             throw rpc::SystemError(ec.value());
+//         }
 
-        auto timeout_val = pimpl_->timeout_val;
-        if(timeout_val.has_value()) {
-            auto wait_ret = pimpl_->conn_finished.wait_for(lock, 
-                std::chrono::milliseconds(timeout_val.value()));
-            if(wait_ret == std::cv_status::timeout) {
-                throw rpc::Timeout(std::format("Timeout of {}ms while connecting to {} | {}", 
-                    timeout_val.value(),pimpl_->addr, pimpl_->port));
-            }
-        }
-        else {
-            pimpl_->conn_finished.wait(lock);
-        }
-    }
-}
+//         auto timeout_val = pimpl_->timeout_val;
+//         if(timeout_val.has_value()) {
+//             auto wait_ret = pimpl_->conn_finished.wait_for(lock, 
+//                 std::chrono::milliseconds(timeout_val.value()));
+//             if(wait_ret == std::cv_status::timeout) {
+//                 throw rpc::Timeout(std::format("Timeout of {}ms while connecting to {} | {}", 
+//                     timeout_val.value(),pimpl_->addr, pimpl_->port));
+//             }
+//         }
+//         else {
+//             pimpl_->conn_finished.wait(lock);
+//         }
+//     }
+// }
 
 void Client::post(std::shared_ptr<msgpack::sbuffer> buffer) {
     // 隐式捕获了this
@@ -258,7 +272,15 @@ void Client::post(std::shared_ptr<msgpack::sbuffer> buffer, int idx,
     const std::string& func_name, std::shared_ptr<rpc_promise> p) {
         pimpl_->strand.post([=, this](){
             pimpl_->ongoing_calls[idx] = std::make_pair(func_name, std::move(*p));
-            pimpl_->write(std::move(*buffer));
+            if(pimpl_->is_connected) {
+                for(auto& pending_call : pimpl_->pending_calls) {
+                    pimpl_->write(std::move(pending_call));
+                }
+                pimpl_->write(std::move(*buffer));
+            }
+            else {
+                pimpl_->pending_calls.push_back(std::move(*buffer));
+            }
         });
 }
 

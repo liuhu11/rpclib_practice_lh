@@ -60,7 +60,7 @@ int main() {
     while(true) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         if(m.idle_time() > MAX_IDLE_TIME) {
-            std::cout << "server stop" << std::endl;
+            std::osyncstream(std::cout) << "server stop" << std::endl;
             srv.stop();
             break;
         }

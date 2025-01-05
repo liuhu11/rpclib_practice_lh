@@ -92,7 +92,6 @@ void AsyncWriter::write(sbuffer &&data) {
     }
 
     write_queue_.push_back(std::move(data));
-
     if(write_queue_.size() > 1) {
         // 原本写队列就有消息要写，不用启动了
         return ;

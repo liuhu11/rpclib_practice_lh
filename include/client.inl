@@ -15,7 +15,7 @@ msgpack::object_handle Client::call(const std::string& func_name, Args... args) 
 template <typename... Args>
 std::future<msgpack::object_handle> Client::async_call(const std::string &func_name, Args... args)
 {
-    wait_conn();
+    // wait_conn();
     logger_.debug(std::format("Calling {}", func_name));
 
     auto args_tuple = std::make_tuple(args...);
